@@ -1,13 +1,22 @@
 import type { NextPage } from "next";
 import Head from "next/head";
 import Image from "next/image";
+import { useState } from "react";
 import styles from "../styles/Home.module.css";
+
+import Warning from "../components/warning";
 
 function getTime(date: Date) {
   return date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds();
 }
 
-const DUMMY_LISTING = [
+interface customer {
+  id: number;
+  name: string;
+  time: string;
+}
+
+const DUMMY_LISTING: customer[] = [
   {
     id: 1,
     name: "Mr Tiến",
@@ -17,7 +26,22 @@ const DUMMY_LISTING = [
   { id: 3, name: "Mr Quý", time: getTime(new Date(Date.now() + 202089)) },
 ];
 
-const Home: NextPage = () => {
+const Home: NextPage<{ code: string }> = ({ code }) => {
+  const [codeInput, setCodeInput] = useState("");
+  const [customerList, setCustomerList] = useState(DUMMY_LISTING);
+  // const [isFirstLoaded, setIsFirstLoaded] = useState(true);
+  const [isCodeValidate, setCodeValidate] = useState(true);
+  const onValidateHandler = (codeInput: string) => {
+    setCodeValidate(codeInput === code);
+  };
+
+  const addCustomerToQueue = (customer: customer) => {
+    let newListCustomer = [...customerList];
+    newListCustomer.push(customer);
+    setCustomerList(newListCustomer);
+    console.log(newListCustomer);
+  };
+
   return (
     <div className={styles.container}>
       <Head>
@@ -28,6 +52,8 @@ const Home: NextPage = () => {
 
       <main className={styles.main}>
         <section>
+          {code && <h1>Key: {code}</h1>}
+
           <h1 className={styles.title}>Lấy số thứ tự</h1>
 
           <p className={styles.description}>
@@ -36,22 +62,51 @@ const Home: NextPage = () => {
 
           <label>Tên: </label>
 
-          <input type="text" />
+          <input type="text" defaultValue="Anonymous" disabled={true} />
+          <p></p>
           <label>Mã lấy số thứ tự: </label>
 
-          <input type="text" />
-          <button>Lấy STT</button>
+          <input
+            type="text"
+            onChange={(e) => {
+              setCodeInput(e.target.value);
+            }}
+          />
+
+          {!isCodeValidate && (
+            <Warning text={"Mã không đúng, vui lòng nhập lại"} />
+          )}
+
+          <p></p>
+
+          <button
+            onClick={() => {
+              // setIsFirstLoaded(false);
+              if (codeInput === code) {
+                let newCustomer: customer = {
+                  id: customerList.length + 1,
+                  name: "Anomyous",
+                  time: getTime(new Date(Date.now())),
+                };
+                addCustomerToQueue(newCustomer);
+              }
+
+              onValidateHandler(codeInput);
+            }}
+          >
+            Lấy STT
+          </button>
         </section>
         <br />
         <section>
           <h1 className={styles.title}>Danh sách hàng đợi</h1>
 
           <ul>
-            {DUMMY_LISTING.map((item) => {
+            {customerList.map((item) => {
               return (
                 <li key={item.id}>
-                  {" "}
-                  {item.name} {item.time}{" "}
+                  {item.id} {item.name} {item.time}{" "}
+                  {item.id === 4 && " - Số thứ tự của bạn"}
                 </li>
               );
             })}
@@ -70,6 +125,12 @@ const Home: NextPage = () => {
       </footer>
     </div>
   );
+};
+
+Home.getInitialProps = async (ctx) => {
+  const res = await fetch("http://localhost:3000/api/getSession");
+  const json = await res.json();
+  return { code: json.key };
 };
 
 export default Home;
