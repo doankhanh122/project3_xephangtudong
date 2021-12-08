@@ -128,7 +128,8 @@ const Home: NextPage<{ code: string }> = ({ code }) => {
 };
 
 Home.getInitialProps = async (ctx) => {
-  const res = await fetch("http://localhost:3000/api/getSession");
+  const url = process.env.APP_URL + "/api/getSession";
+  const res = await fetch(url);
   const json = await res.json();
   return { code: json.key };
 };
