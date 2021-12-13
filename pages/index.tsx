@@ -58,7 +58,8 @@ const Home: NextPage<{ code: string; data: any }> = ({ code, data }) => {
   // };
 
   useEffect(() => {
-    if (data.customer !== null) addCustomerToQueue(JSON.parse(data.customer));
+    if (data.customer && data.customer !== null)
+      addCustomerToQueue(JSON.parse(data.customer));
   }, []);
 
   return (
@@ -72,7 +73,7 @@ const Home: NextPage<{ code: string; data: any }> = ({ code, data }) => {
       <main className={styles.main}>
         <section>
           <h1>Key KH phải nhập: {code}</h1>
-          <h1>Cookie da luu : {data.customer}</h1>
+          <h1>Cookie da luu : {data.customer != undefined && data.customer}</h1>
 
           <h1 className={styles.title}>Lấy số thứ tự</h1>
 
@@ -138,7 +139,9 @@ const Home: NextPage<{ code: string; data: any }> = ({ code, data }) => {
               return (
                 <li key={item.id}>
                   {item.id} {item.name} {item.time}{" "}
-                  {item.id == JSON.parse(data.customer).id && "- Số TT của bạn"}
+                  {data.customer != undefined &&
+                    item.id == JSON.parse(data.customer).id &&
+                    "- Số TT của bạn"}
                 </li>
               );
             })}
@@ -165,7 +168,8 @@ Home.getInitialProps = async ({ req }) => {
   const json = await res.json();
 
   const data = parseCookies(req);
-  return { code: json.key, data: data };
+
+  return { code: json.key, data: data && data };
 };
 
 export default Home;
