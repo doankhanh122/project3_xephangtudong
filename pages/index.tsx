@@ -1,10 +1,13 @@
 import type { NextPage } from "next";
 import Head from "next/head";
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import styles from "../styles/Home.module.css";
 
 import Warning from "../components/warning";
+
+import { useCookies } from "react-cookie";
+import { parseCookies } from "../helpers/";
 
 function getTime(date: Date) {
   return date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds();
@@ -26,9 +29,12 @@ const DUMMY_LISTING: customer[] = [
   { id: 3, name: "Mr Quý", time: getTime(new Date(Date.now() + 202089)) },
 ];
 
-const Home: NextPage<{ code: string }> = ({ code }) => {
+const Home: NextPage<{ code: string; data: any }> = ({ code, data }) => {
   const [codeInput, setCodeInput] = useState("");
   const [customerList, setCustomerList] = useState(DUMMY_LISTING);
+
+  const [cookie, setCookie] = useCookies(["customer"]);
+
   // const [isFirstLoaded, setIsFirstLoaded] = useState(true);
   const [isCodeValidate, setCodeValidate] = useState(true);
   const onValidateHandler = (codeInput: string) => {
@@ -40,7 +46,20 @@ const Home: NextPage<{ code: string }> = ({ code }) => {
     newListCustomer.push(customer);
     setCustomerList(newListCustomer);
     console.log(newListCustomer);
+    console.log("Old cookie");
+    console.log(cookie);
+    setCookie("customer", JSON.stringify(customer));
+    console.log("New cookie");
+    console.log(cookie);
   };
+
+  // const removeCookie = () => {
+  //   setCookie("customer", null);
+  // };
+
+  useEffect(() => {
+    if (data.customer !== null) addCustomerToQueue(JSON.parse(data.customer));
+  }, []);
 
   return (
     <div className={styles.container}>
@@ -52,7 +71,8 @@ const Home: NextPage<{ code: string }> = ({ code }) => {
 
       <main className={styles.main}>
         <section>
-          {code && <h1>Key: {code}</h1>}
+          <h1>Key KH phải nhập: {code}</h1>
+          <h1>Cookie da luu : {data.customer}</h1>
 
           <h1 className={styles.title}>Lấy số thứ tự</h1>
 
@@ -71,11 +91,14 @@ const Home: NextPage<{ code: string }> = ({ code }) => {
             onChange={(e) => {
               setCodeInput(e.target.value);
             }}
+            disabled={data.customer != null}
           />
 
           {!isCodeValidate && (
             <Warning text={"Mã không đúng, vui lòng nhập lại"} />
           )}
+
+          {data.customer != null && <Warning text={"Bạn đã lấy STT rồi!"} />}
 
           <p></p>
 
@@ -85,10 +108,11 @@ const Home: NextPage<{ code: string }> = ({ code }) => {
               if (codeInput === code) {
                 let newCustomer: customer = {
                   id: customerList.length + 1,
-                  name: "Anomyous",
+                  name: "Anonymous",
                   time: getTime(new Date(Date.now())),
                 };
-                addCustomerToQueue(newCustomer);
+
+                if (data.customer == null) addCustomerToQueue(newCustomer);
               }
 
               onValidateHandler(codeInput);
@@ -96,6 +120,14 @@ const Home: NextPage<{ code: string }> = ({ code }) => {
           >
             Lấy STT
           </button>
+
+          {/* <button
+            onClick={() => {
+              // removeCookie();
+            }}
+          >
+            Xóa STT đã lấy
+          </button> */}
         </section>
         <br />
         <section>
@@ -106,7 +138,7 @@ const Home: NextPage<{ code: string }> = ({ code }) => {
               return (
                 <li key={item.id}>
                   {item.id} {item.name} {item.time}{" "}
-                  {item.id === 4 && " - Số thứ tự của bạn"}
+                  {item.id == JSON.parse(data.customer).id && "- Số TT của bạn"}
                 </li>
               );
             })}
@@ -127,11 +159,13 @@ const Home: NextPage<{ code: string }> = ({ code }) => {
   );
 };
 
-Home.getInitialProps = async (ctx) => {
+Home.getInitialProps = async ({ req }) => {
   const url = process.env.APP_URL + "/api/getSession";
   const res = await fetch(url);
   const json = await res.json();
-  return { code: json.key };
+
+  const data = parseCookies(req);
+  return { code: json.key, data: data };
 };
 
 export default Home;
