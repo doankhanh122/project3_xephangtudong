@@ -8,6 +8,7 @@ import Warning from "../components/warning";
 
 import { useCookies } from "react-cookie";
 import { parseCookies } from "../helpers/";
+import { dbConnection } from "./api/dbconnection";
 
 function getTime(date: Date) {
   return date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds();
@@ -41,6 +42,21 @@ const Home: NextPage<{ code: string; data: any }> = ({ code, data }) => {
     setCodeValidate(codeInput === code);
   };
 
+  // const sqlInsert = "INSERT INTO customers (arrived_in) values";
+
+  // const saveCustomerToDb = (customer: customer) => {
+  //   dbConnection.connect((error: Error) => {
+  //     if (error) throw error;
+  //     dbConnection.querry(
+  //       sqlInsert,
+  //       customer.time,
+  //       (err: Error, result: any, field: any) => {
+  //         if (err) throw err;
+  //       }
+  //     );
+  //   });
+  // };
+
   const addCustomerToQueue = (customer: customer) => {
     let newListCustomer = [...customerList];
     newListCustomer.push(customer);
@@ -51,6 +67,7 @@ const Home: NextPage<{ code: string; data: any }> = ({ code, data }) => {
     setCookie("customer", JSON.stringify(customer));
     console.log("New cookie");
     console.log(cookie);
+    // saveCustomerToDb(customer);
   };
 
   // const removeCookie = () => {

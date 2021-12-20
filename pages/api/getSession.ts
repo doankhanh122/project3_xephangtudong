@@ -10,10 +10,10 @@ export default async function getSession(
     if (error) throw error;
     console.log("Da ket noi database!");
     dbConnection.query(
-      "Select * from sessions",
+      "Select * from enrollstatus",
       (err: any, results: any, fields: any) => {
         if (err) throw err;
-        res.status(200).json(results[0]);
+        res.status(200).json(results);
       }
     );
   });
