@@ -8,9 +8,11 @@ import { useCookies } from "react-cookie";
 import DeviceDetector from "device-detector-js";
 
 
-import QrReader from 'react-qr-scanner'
+// import QrReader from 'react-qr-reader'
+import dynamic from "next/dynamic";
+import { AnyCnameRecord } from "dns";
 
-
+const QrReader: any = dynamic(() => import('react-qr-reader'),{ssr: false})
 var md5 = require('md5')
 
 function getTime(date: Date) {
@@ -41,12 +43,22 @@ const Home: NextPage<{ code: string }> = ({ code }) => {
 
   const [browserInfo, setBrowserInfo] = useState('')
 
+  const [dataQr, setDataQr] = useState('')
+
   // const [isFirstLoaded, setIsFirstLoaded] = useState(true);
   const [isCodeValidate, setCodeValidate] = useState(true);
   const onValidateHandler = (codeInput: string) => {
     setCodeValidate(codeInput === code);
   };
 
+  const handleScan = (data: any) => {
+    setDataQr(data)
+    console.log(data)
+  }
+
+  const handleError = (err: AnyCnameRecord) => {
+    console.error(err)
+  }
 
 
   const addCustomerToQueue = (customer: customer) => {
@@ -116,7 +128,7 @@ const Home: NextPage<{ code: string }> = ({ code }) => {
 
           <p></p>
 
-          <QrReader/>
+          <QrReader delay={300} style={{height: 243, width: 240}} onError={handleError} onScan={handleScan}/>
 
           <button
             onClick={() => {
