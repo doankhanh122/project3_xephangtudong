@@ -8,6 +8,8 @@ import { useCookies } from "react-cookie";
 import DeviceDetector from "device-detector-js";
 
 
+
+
 // import QrReader from 'react-qr-reader'
 import dynamic from "next/dynamic";
 import { AnyCnameRecord } from "dns";
