@@ -1,18 +1,17 @@
 import type { NextPage } from "next";
 import Head from "next/head";
-import Image from "next/image";
 import { useEffect, useState } from "react";
 import styles from "../styles/Home.module.css";
-
 import Warning from "../components/warning";
 
 import { useCookies } from "react-cookie";
-import { parseCookies } from "../helpers/";
-import { dbConnection } from "../components/dbconnection";
 import DeviceDetector from "device-detector-js";
 
-var md5 = require('md5')
 
+import QrReader from 'react-qr-scanner'
+
+
+var md5 = require('md5')
 
 function getTime(date: Date) {
   return date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds();
@@ -116,6 +115,8 @@ const Home: NextPage<{ code: string }> = ({ code }) => {
           )}
 
           <p></p>
+
+          <QrReader/>
 
           <button
             onClick={() => {
