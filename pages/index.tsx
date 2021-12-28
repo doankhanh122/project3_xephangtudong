@@ -8,7 +8,11 @@ import Warning from "../components/warning";
 
 import { useCookies } from "react-cookie";
 import { parseCookies } from "../helpers/";
-import { dbConnection } from "./api/dbconnection";
+import { dbConnection } from "../components/dbconnection";
+import DeviceDetector from "device-detector-js";
+
+var md5 = require('md5')
+
 
 function getTime(date: Date) {
   return date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds();
@@ -30,11 +34,13 @@ const DUMMY_LISTING: customer[] = [
   { id: 3, name: "Mr Quý", time: getTime(new Date(Date.now() + 202089)) },
 ];
 
-const Home: NextPage<{ code: string; data: any }> = ({ code, data }) => {
+const Home: NextPage<{ code: string }> = ({ code }) => {
   const [codeInput, setCodeInput] = useState("");
   const [customerList, setCustomerList] = useState(DUMMY_LISTING);
 
-  const [cookie, setCookie] = useCookies(["customer"]);
+  const [cookieDeviceInfo, setCookieDeviceInfo] = useCookies(["deviceInfo"]);
+
+  const [browserInfo, setBrowserInfo] = useState('')
 
   // const [isFirstLoaded, setIsFirstLoaded] = useState(true);
   const [isCodeValidate, setCodeValidate] = useState(true);
@@ -42,20 +48,7 @@ const Home: NextPage<{ code: string; data: any }> = ({ code, data }) => {
     setCodeValidate(codeInput === code);
   };
 
-  // const sqlInsert = "INSERT INTO customers (arrived_in) values";
 
-  // const saveCustomerToDb = (customer: customer) => {
-  //   dbConnection.connect((error: Error) => {
-  //     if (error) throw error;
-  //     dbConnection.querry(
-  //       sqlInsert,
-  //       customer.time,
-  //       (err: Error, result: any, field: any) => {
-  //         if (err) throw err;
-  //       }
-  //     );
-  //   });
-  // };
 
   const addCustomerToQueue = (customer: customer) => {
     let newListCustomer = [...customerList];
@@ -63,10 +56,10 @@ const Home: NextPage<{ code: string; data: any }> = ({ code, data }) => {
     setCustomerList(newListCustomer);
     console.log(newListCustomer);
     console.log("Old cookie");
-    console.log(cookie);
-    setCookie("customer", JSON.stringify(customer));
-    console.log("New cookie");
-    console.log(cookie);
+    // console.log(cookie);
+    // setCookie("customer", JSON.stringify(customer));
+    // console.log("New cookie");
+    // console.log(cookie);
     // saveCustomerToDb(customer);
   };
 
@@ -74,10 +67,20 @@ const Home: NextPage<{ code: string; data: any }> = ({ code, data }) => {
   //   setCookie("customer", null);
   // };
 
+  // DEVICE DETECTOR
+  const deviceDetector = new DeviceDetector()
+  var userAgent
+  
+
+ 
+
   useEffect(() => {
-    if (data.customer && data.customer !== null)
-      addCustomerToQueue(JSON.parse(data.customer));
-  }, []);
+    userAgent = navigator.userAgent
+    console.log(userAgent)
+    setBrowserInfo(userAgent)
+    setCookieDeviceInfo('deviceInfo', userAgent)
+    console.log(deviceDetector.parse(userAgent))
+  }, [])
 
   return (
     <div className={styles.container}>
@@ -89,8 +92,10 @@ const Home: NextPage<{ code: string; data: any }> = ({ code, data }) => {
 
       <main className={styles.main}>
         <section>
+          <h1>Hash value: {md5('Khanh')} </h1>
+          <h1>UserAgent: {browserInfo} </h1>
           <h1>Key KH phải nhập: {code}</h1>
-          <h1>Cookie da luu : {data.customer != undefined && data.customer}</h1>
+          {/* <h1>Cookie da luu : {data.customer != undefined && data.customer}</h1> */}
 
           <h1 className={styles.title}>Lấy số thứ tự</h1>
 
@@ -104,19 +109,11 @@ const Home: NextPage<{ code: string; data: any }> = ({ code, data }) => {
           <p></p>
           <label>Mã lấy số thứ tự: </label>
 
-          <input
-            type="text"
-            onChange={(e) => {
-              setCodeInput(e.target.value);
-            }}
-            disabled={data.customer != null}
-          />
+         
 
           {!isCodeValidate && (
             <Warning text={"Mã không đúng, vui lòng nhập lại"} />
           )}
-
-          {data.customer != null && <Warning text={"Bạn đã lấy STT rồi!"} />}
 
           <p></p>
 
@@ -129,8 +126,6 @@ const Home: NextPage<{ code: string; data: any }> = ({ code, data }) => {
                   name: "Anonymous",
                   time: getTime(new Date(Date.now())),
                 };
-
-                if (data.customer == null) addCustomerToQueue(newCustomer);
               }
 
               onValidateHandler(codeInput);
@@ -151,18 +146,7 @@ const Home: NextPage<{ code: string; data: any }> = ({ code, data }) => {
         <section>
           <h1 className={styles.title}>Danh sách hàng đợi</h1>
 
-          <ul>
-            {customerList.map((item) => {
-              return (
-                <li key={item.id}>
-                  {item.id} {item.name} {item.time}{" "}
-                  {data.customer != undefined &&
-                    item.id == JSON.parse(data.customer).id &&
-                    "- Số TT của bạn"}
-                </li>
-              );
-            })}
-          </ul>
+
         </section>
       </main>
 
@@ -180,13 +164,11 @@ const Home: NextPage<{ code: string; data: any }> = ({ code, data }) => {
 };
 
 Home.getInitialProps = async ({ req }) => {
-  const url = process.env.APP_URL + "/api/getSession";
+  const url = process.env.APP_URL + "/api/getstatus";
   const res = await fetch(url);
   const json = await res.json();
 
-  const data = parseCookies(req);
-
-  return { code: json.key, data: data && data };
+  return { code: json.key};
 };
 
 export default Home;

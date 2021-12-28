@@ -1,8 +1,8 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { dbConnection } from "./dbconnection";
+import { dbConnection } from "../../components/dbconnection";
 
 const sqlQuerry = "Select key from sessions";
-export default async function insertCustomer(
+export default async function insertQueue(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
@@ -23,7 +23,7 @@ export default async function insertCustomer(
     dbConnection.query(
       "INSERT INTO queues (queueid, effectfrom, effectto, author, place, edition, code) values (?,?,?,?,?,?,?)",
       [
-        body.queueid,
+        body.queueId,
         effectFrom,
         effectTo,
         body.author,
