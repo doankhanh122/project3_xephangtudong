@@ -10,8 +10,6 @@ const md5 = require('md5')
 
 
 
-
-
 export default async function insertCustomer(
   req: NextApiRequest,
   res: NextApiResponse
@@ -44,11 +42,16 @@ export default async function insertCustomer(
       ],
       (err: any, results: any, fields: any) => {
         if (err) {
+
+          if (err.code == 'ER_DUP_ENTRY') {
+            res.status(200).json({customerId});
+          }
           res.status(401).json("Khong the luu thong tin vao Db \n" + err);
+          
           throw err;
         }
 
-        res.status(200).json("Da luu thong tin Customer");
+        res.status(200).json({customerId});
       }
     );
   });

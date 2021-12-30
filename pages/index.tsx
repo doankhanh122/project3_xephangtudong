@@ -7,15 +7,15 @@ import Warning from "../components/warning";
 import { useCookies } from "react-cookie";
 import DeviceDetector from "device-detector-js";
 
-
-
-
 // import QrReader from 'react-qr-reader'
 import dynamic from "next/dynamic";
 import { AnyCnameRecord } from "dns";
+import insertCustomer from "./api/insertcustomer";
+import { Queue } from "./qrcode";
+import context from "react-bootstrap/esm/AccordionContext";
 
-const QrReader: any = dynamic(() => import('react-qr-reader'),{ssr: false})
-var md5 = require('md5')
+const QrReader: any = dynamic(() => import("react-qr-reader"), { ssr: false });
+var md5 = require("md5");
 
 function getTime(date: Date) {
   return date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds();
@@ -37,15 +37,16 @@ const DUMMY_LISTING: customer[] = [
   { id: 3, name: "Mr Quý", time: getTime(new Date(Date.now() + 202089)) },
 ];
 
-const Home: NextPage<{ code: string }> = ({ code }) => {
+const Home: NextPage<any> = ({ code, app_url }) => {
   const [codeInput, setCodeInput] = useState("");
   const [customerList, setCustomerList] = useState(DUMMY_LISTING);
 
   const [cookieDeviceInfo, setCookieDeviceInfo] = useCookies(["deviceInfo"]);
 
-  const [browserInfo, setBrowserInfo] = useState('')
+  const [browserInfo, setBrowserInfo] = useState("");
 
-  const [dataQr, setDataQr] = useState('')
+  const [isCameraTurnedOn, setIsCameraTurnedOn] = useState(false);
+  const [dataQr, setDataQr] = useState(null);
 
   // const [isFirstLoaded, setIsFirstLoaded] = useState(true);
   const [isCodeValidate, setCodeValidate] = useState(true);
@@ -53,27 +54,34 @@ const Home: NextPage<{ code: string }> = ({ code }) => {
     setCodeValidate(codeInput === code);
   };
 
-  const handleScan = (data: any) => {
-    setDataQr(data)
-    console.log(data)
-  }
+  const handleScan = async (data: any) => {
+    setDataQr(data);
+
+    if (data != null && isCameraTurnedOn) {
+      // insertCustomer(null, null)
+      // const insertCustomerUrl: string =
+      //   process.env.APP_URL + "/api/insertcustomer";
+      // console.log(insertCustomerUrl);
+      // const insertCustomerRes = await fetch(insertCustomerUrl);
+      // const insertCustomerResJson = await insertCustomerRes.json();
+      // console.log(insertCustomerResJson);
+      setIsCameraTurnedOn(false);
+      const res = await registerCustomer(app_url);
+
+      const customerid = await res.json().then((data) => {
+        return data.customerId;
+      });
+
+      const queueid = await getQueueID(app_url, data);
+
+      if (queueid !== "") {
+        await addCustomerToQueue(app_url, queueid, customerid, "0", "0");
+      }
+    }
+  };
 
   const handleError = (err: AnyCnameRecord) => {
-    console.error(err)
-  }
-
-
-  const addCustomerToQueue = (customer: customer) => {
-    let newListCustomer = [...customerList];
-    newListCustomer.push(customer);
-    setCustomerList(newListCustomer);
-    console.log(newListCustomer);
-    console.log("Old cookie");
-    // console.log(cookie);
-    // setCookie("customer", JSON.stringify(customer));
-    // console.log("New cookie");
-    // console.log(cookie);
-    // saveCustomerToDb(customer);
+    console.error(err);
   };
 
   // const removeCookie = () => {
@@ -81,19 +89,16 @@ const Home: NextPage<{ code: string }> = ({ code }) => {
   // };
 
   // DEVICE DETECTOR
-  const deviceDetector = new DeviceDetector()
-  var userAgent
-  
-
- 
+  const deviceDetector = new DeviceDetector();
+  var userAgent;
 
   useEffect(() => {
-    userAgent = navigator.userAgent
-    console.log(userAgent)
-    setBrowserInfo(userAgent)
-    setCookieDeviceInfo('deviceInfo', userAgent)
-    console.log(deviceDetector.parse(userAgent))
-  }, [])
+    userAgent = navigator.userAgent;
+    console.log(userAgent);
+    setBrowserInfo(userAgent);
+    setCookieDeviceInfo("deviceInfo", userAgent);
+    console.log(deviceDetector.parse(userAgent));
+  }, []);
 
   return (
     <div className={styles.container}>
@@ -105,7 +110,7 @@ const Home: NextPage<{ code: string }> = ({ code }) => {
 
       <main className={styles.main}>
         <section>
-          <h1>Hash value: {md5('Khanh')} </h1>
+          <h1>Hash value: {md5("Khanh")} </h1>
           <h1>UserAgent: {browserInfo} </h1>
           <h1>Key KH phải nhập: {code}</h1>
           {/* <h1>Cookie da luu : {data.customer != undefined && data.customer}</h1> */}
@@ -116,52 +121,43 @@ const Home: NextPage<{ code: string }> = ({ code }) => {
             Để lấy số thứ tự, mời bạn nhập tên và mã vào ô dưới đây
           </p>
 
-          <label>Tên: </label>
+          <div className={styles.description}>
+            <label>Tên: </label>
 
-          <input type="text" defaultValue="Anonymous" disabled={true} />
-          <p></p>
-          <label>Mã lấy số thứ tự: </label>
+            <input type="text" defaultValue="Anonymous" disabled={true} />
+            <p></p>
+            <label>Quét mã QR để lấy số thứ tự </label>
 
-         
+            <p></p>
 
-          {!isCodeValidate && (
-            <Warning text={"Mã không đúng, vui lòng nhập lại"} />
-          )}
+            {isCameraTurnedOn && (
+              <div className="card">
+                <QrReader
+                  delay={300}
+                  style={{ height: 240, width: 240, margin: "auto" }}
+                  onError={handleError}
+                  onScan={handleScan}
+                  legacyMode={false}
+                />
+              </div>
+            )}
+            <button
+              className="btn btn-dark"
+              onClick={() => {
+                setIsCameraTurnedOn((isCameraTurnedOn) => !isCameraTurnedOn);
+              }}
+            >
+              {isCameraTurnedOn ? "Dừng quét" : "Quét ngay"}
+            </button>
 
-          <p></p>
-
-          <QrReader delay={300} style={{height: 243, width: 240}} onError={handleError} onScan={handleScan}/>
-
-          <button
-            onClick={() => {
-              // setIsFirstLoaded(false);
-              if (codeInput === code) {
-                let newCustomer: customer = {
-                  id: customerList.length + 1,
-                  name: "Anonymous",
-                  time: getTime(new Date(Date.now())),
-                };
-              }
-
-              onValidateHandler(codeInput);
-            }}
-          >
-            Lấy STT
-          </button>
-
-          {/* <button
-            onClick={() => {
-              // removeCookie();
-            }}
-          >
-            Xóa STT đã lấy
-          </button> */}
+            {dataQr !== null && (
+              <div className="alert alert-success"> {dataQr}</div>
+            )}
+          </div>
         </section>
         <br />
         <section>
           <h1 className={styles.title}>Danh sách hàng đợi</h1>
-
-
         </section>
       </main>
 
@@ -183,7 +179,59 @@ Home.getInitialProps = async ({ req }) => {
   const res = await fetch(url);
   const json = await res.json();
 
-  return { code: json.key};
+  return { code: json.key, app_url: process.env.APP_URL };
 };
 
 export default Home;
+
+const registerCustomer = async (app_url: string) => {
+  const url = `${app_url}/api/insertcustomer`;
+  const res = await fetch(url);
+  return res;
+};
+
+const addCustomerToQueue = async (
+  app_url: string,
+  queueid: string,
+  customerid: string,
+  order: string,
+  status: string
+) => {
+  const url = app_url + "/api/inserttoqueue";
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      queueid,
+      customerid,
+      order,
+      status,
+    }),
+  });
+
+  return res;
+};
+
+const getQueueID = async (app_url: string, queueCode: string) => {
+  const url = app_url + "/api/getqueue";
+  const res = await fetch(url);
+  const queues = await res.json();
+
+  console.log(queues);
+  console.log(typeof queues);
+
+  let queueid: string = "";
+  queues.forEach((queue: Queue) => {
+    // if (queue.Code === queueCode) {
+    //   return queue.QueueID;
+    // }
+
+    if (queue.Code == queueCode) {
+      queueid = queue.QueueID.toString();
+    }
+
+    console.log(queue);
+  });
+
+  return queueid;
+};
