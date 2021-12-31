@@ -49,18 +49,17 @@ export default async function insertCustomerToQueue(
       (err: any, results: any, fields: any) => {
         if (err) {
           if (err.code == 'ER_DUP_ENTRY') {
-            res.status(200).json({message: "Đang trong hàng đợi"})
+            res.status(200).json({code: 'Duplicate', message: "Đang trong hàng đợi"})
           }
-          res.status(401).json("Không thể thêm customer vào queue \n" + err);
+          res.status(401).json({code: 'Fail', message: err});
           console.log(err)
           throw err;
         }
 
-        res.status(200).json("Đã thêm customer vào queue");
+        res.status(200).json({code: 'Success', message: "Đã thêm customer vào queue"});
       }
     );
   });
 
-  return res.redirect('/')
 }
 

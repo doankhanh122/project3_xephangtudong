@@ -5,6 +5,7 @@ export default async function getQueue(
     req: NextApiRequest,
     res: NextApiResponse
   ) {
+    console.log(req.query.queuecode)
     dbConnection.connect((error: any) => {
       if (error) throw error;
       console.log("Da ket noi database!");

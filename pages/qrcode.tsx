@@ -1,7 +1,8 @@
 import { NextPage } from "next";
-import { useRouter } from "next/router";
+import Link from "next/link";
+import Router, { useRouter } from "next/router";
 import { type } from "os";
-import { useEffect, useState } from "react";
+import { PropsWithChildren, useEffect, useState } from "react";
 import QRCode from "react-qr-code";
 import styles from "../styles/Home.module.css";
 
@@ -26,15 +27,18 @@ const QrCodePage: NextPage<{ queues: Queue[] }> = ({ queues }) => {
   return (
     <main className={styles.main}>
       {isNaN(id) ? (
-        <ul>
+        <ul className="list-unstyled ">
           {queues.map((queue) => {
             return (
-              <li key={queue.QueueID}>
-                <div className="card">
-                  <div className="card-title">
-                    <p>
-                      <strong>ID: {queue.QueueID}</strong>
-                    </p>
+              <li className="m-1" key={queue.QueueID}>
+                <div className="card p-3">
+                  <div className="card-title bg-success">
+                    {/* className=" text-white text-decoration-none" */}
+                    <Link href={`/qrcode?id=${queue.QueueID}`}>
+                      <a className=" text-white text-decoration-none">
+                        <strong>ID:</strong> {queue.QueueID}
+                      </a>
+                    </Link>
                   </div>
 
                   <div className="card-text">
@@ -98,6 +102,12 @@ const QrCodePage: NextPage<{ queues: Queue[] }> = ({ queues }) => {
             <div className="text-center">
               <QRCode value={queues[id].Code} />
             </div>
+
+            <div className="mt-2 text-center">
+              <Link href="/qrcode">
+                <a className="btn btn-success ">Quay lại</a>
+              </Link>
+            </div>
           </div>
         </div>
       )}
@@ -105,14 +115,14 @@ const QrCodePage: NextPage<{ queues: Queue[] }> = ({ queues }) => {
   );
 };
 
-export async function getServerSideProps() {
+QrCodePage.getInitialProps = async (): Promise<{ queues: Queue[] }> => {
   const url = process.env.APP_URL + "/api/getqueue";
   const res = await fetch(url);
   const json = await res.json();
-  console.log(json);
+  // console.log(json);
   return {
-    props: { queues: json && json },
+    queues: json && json,
   };
-}
+};
 
 export default QrCodePage;

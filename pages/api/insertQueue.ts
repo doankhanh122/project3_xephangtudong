@@ -33,11 +33,11 @@ export default async function insertQueue(
       ],
       (err: any, results: any, fields: any) => {
         if (err) {
-          res.status(401).json("Khong the luu thong tin vao Db");
+          res.status(401).json({code:'Fail', message:"Khong the luu thong tin vao Db"});
           throw err;
         }
 
-        res.status(200).json("Da luu thong tin Queue");
+        res.status(200).json({code:'Success', message:"Da luu thong tin Queue"});
       }
     );
   });
