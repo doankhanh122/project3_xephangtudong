@@ -1,20 +1,16 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { useRouter } from "next/router";
-import { dbConnection } from "../../components/dbconnection";
-// const {query} = useRouter();
+import { dbConnection } from "../../../components/dbconnection";
 
-export default async function getQueueHasCustomers(
+export default async function getQueueWithId(
     req: NextApiRequest,
     res: NextApiResponse
   ) {
-    
-    // console.log(req)
+    console.log(req.query.queuecode)
     dbConnection.connect((error: any) => {
       if (error) throw error;
       console.log("Da ket noi database!");
       dbConnection.query(
-        "Select * from queues_has_customers where queues_queueid = ?",
-        req.query.queueid,
+        "Select * from queues where queueid = ?", [req.query.id],
         (err: any, results: any, fields: any) => {
           if (err) throw err;
           res.status(200).json(results);

@@ -1,112 +1,81 @@
 import type { NextPage } from "next";
 import Head from "next/head";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import styles from "../styles/Home.module.css";
 import Warning from "../components/warning";
 
 import { useCookies } from "react-cookie";
-import DeviceDetector from "device-detector-js";
 
 // import QrReader from 'react-qr-reader'
 import dynamic from "next/dynamic";
 import { AnyCnameRecord } from "dns";
-import { Queue } from "./qrcode";
-
+import GetNumberDialog from "../components/getNumberDialog";
 const QrReader: any = dynamic(() => import("react-qr-reader"), { ssr: false });
 var md5 = require("md5");
 
-function getTime(date: Date) {
-  return date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds();
-}
+// function getTime(date: Date) {
+//   return date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds();
+// }
 
-interface RequestResponse {
+export type RequestResponse = {
   code: string;
   message: string;
-}
+};
 
-interface customer {
+export type Customer = {
   id: number;
   name: string;
   time: string;
-}
+};
 
-const DUMMY_LISTING: customer[] = [
-  {
-    id: 1,
-    name: "Mr Tiến",
-    time: getTime(new Date(Date.now())),
-  },
-  { id: 2, name: "Mr Khánh", time: getTime(new Date(Date.now() + 101068)) },
-  { id: 3, name: "Mr Quý", time: getTime(new Date(Date.now() + 202089)) },
-];
+export type Queue = {
+  QueueID: number;
+  EffectFrom: Date;
+  EffectTo: Date;
+  Author: string;
+  Place: string;
+  Edition: string;
+  Code: string;
+};
 
-const Home: NextPage<{ app_url: string; device_info: string }> = ({
-  app_url,
-  device_info,
-}) => {
-  const [codeInput, setCodeInput] = useState("");
-  const [customerList, setCustomerList] = useState(DUMMY_LISTING);
+export type QueueHasCustomers = {
+  queues_QueueID: number;
+  customers_CustomerID: string;
+  EnrollTime: Date;
+  Order: number;
+  enrollstatus_EnrollStatusID: number;
+};
 
-  const [cookie, setCookie] = useCookies(["deviceInfo", "customerid"]);
+const Home: NextPage<{
+  app_url: string;
+  device_info: string;
+  queues: Queue[];
+}> = ({ app_url, device_info, queues }) => {
+  // console.log("Customer Queue \n" + customerQueues[0].customers_CustomerID);
+  const [customerQueue, setCustomerQueue] = useState<Queue>();
+  const [queueHasCustomers, setQueueHasCustomers] =
+    useState<QueueHasCustomers[]>();
+
+  const [cookie, setCookie] = useCookies(["deviceInfo", "customerId"]);
   setCookie("deviceInfo", device_info);
 
   const [isCameraTurnedOn, setIsCameraTurnedOn] = useState(false);
   const [dataQr, setDataQr] = useState(null);
 
-  // const [isFirstLoaded, setIsFirstLoaded] = useState(true);
-  const [isCodeValidate, setCodeValidate] = useState(true);
-
   const handleScan = async (data: any) => {
     setDataQr(data);
 
     if (data != null && isCameraTurnedOn) {
-      // insertCustomer(null, null)
-      // const insertCustomerUrl: string =
-      //   process.env.APP_URL + "/api/insertcustomer";
-      // console.log(insertCustomerUrl);
-      // const insertCustomerRes = await fetch(insertCustomerUrl);
-      // const insertCustomerResJson = await insertCustomerRes.json();
-      // console.log(insertCustomerResJson);
-
       const deviceinfo = cookie.deviceInfo;
-      const customerid = md5(deviceinfo);
-
       setIsCameraTurnedOn(false);
 
-      console.log("Customer ID cookie: " + cookie.customerid);
-
-      const registerCustomerResponse = await registerCustomer(
-        app_url,
-        customerid,
-        deviceinfo
-      );
-      const registerCustomerResult: RequestResponse =
-        await registerCustomerResponse.json();
-
-      if (
-        registerCustomerResult.code == "Success" ||
-        registerCustomerResult.code == "Duplicate"
-      ) {
-        setCookie("customerid", customerid);
-        const queueid = await getQueueID(app_url, data);
-
-        if (queueid !== "") {
-          const addCustomerToQueueResponse = await addCustomerToQueue(
-            app_url,
-            queueid,
-            customerid,
-            "0",
-            "0"
-          );
-          const addCustomerToQueueResult =
-            await addCustomerToQueueResponse.json();
-
-          if (addCustomerToQueueResult.code === "Success") {
-            console.log("Them customer vao Queue thanh cong");
-          } else {
-            console.log("Khong the them customer vao Queue");
-          }
-        }
+      // console.log("Customer ID cookie: " + cookie.customerid);
+      const queue = getQueueWithCode(data, queues);
+      console.log(queue);
+      if (queue !== undefined) {
+        setCustomerQueue(queue);
+      } else {
+        setCustomerQueue(undefined);
       }
     }
   };
@@ -115,19 +84,61 @@ const Home: NextPage<{ app_url: string; device_info: string }> = ({
     console.error(err);
   };
 
-  // const removeCookie = () => {
-  //   setCookie("customer", null);
-  // };
+  const insertCustomerToQueueHandler = async () => {
+    const customerid_cookie = cookie.customerId;
+    const deviceInfo = cookie.deviceInfo;
+    const customerId = md5(deviceInfo);
+    if (customerid_cookie === undefined) {
+      const registerCustomerRes = await registerCustomer(app_url, deviceInfo);
 
-  // DEVICE DETECTOR
-  const deviceDetector = new DeviceDetector();
-  var userAgent;
+      if (registerCustomerRes.code === "Success") {
+        setCookie("customerId", customerId);
+
+        // Add to Queue
+        if (customerQueue !== undefined) {
+          const addCustomerToQueueRes = await addCustomerToQueue(
+            app_url,
+            customerQueue.QueueID.toString(),
+            customerId,
+            "0",
+            "0"
+          );
+
+          if (addCustomerToQueueRes.code === "Success") {
+          }
+        }
+      }
+    } else {
+      // CustomerID da luu trong cookie
+
+      // Add to Queue
+      if (customerQueue !== undefined) {
+        const addCustomerToQueueRes = await addCustomerToQueue(
+          app_url,
+          customerQueue.QueueID.toString(),
+          customerId,
+          "0",
+          "0"
+        );
+
+        if (addCustomerToQueueRes.code === "Success") {
+        } else if (addCustomerToQueueRes.code === "Duplicate") {
+          console.log("Duplicate");
+        }
+      }
+    }
+  };
+
+  const getQueueHasCustomers = useCallback(async () => {
+    const customerQueues = await fetch(
+      app_url + `/api/getqueuehascustomers/${cookie.customerId}`
+    ).then((res) => res.json());
+
+    setQueueHasCustomers(customerQueues);
+  }, []);
 
   useEffect(() => {
-    // userAgent = navigator.userAgent;
-    // console.log(userAgent);
-    // setBrowserInfo(userAgent);
-    // console.log(deviceDetector.parse(userAgent));
+    getQueueHasCustomers();
   }, []);
 
   return (
@@ -141,16 +152,7 @@ const Home: NextPage<{ app_url: string; device_info: string }> = ({
       <main className={styles.main}>
         <section>
           <h3 className={styles.title}>Lấy số thứ tự</h3>
-
-          <p className={styles.description}>
-            Để lấy số thứ tự, mời bạn nhập tên và mã vào ô dưới đây
-          </p>
-
           <div className={styles.description}>
-            <label>Tên: </label>
-
-            <input type="text" defaultValue="Anonymous" disabled={true} />
-            <p></p>
             <label>Quét mã QR để lấy số thứ tự </label>
 
             <p></p>
@@ -167,22 +169,51 @@ const Home: NextPage<{ app_url: string; device_info: string }> = ({
               </div>
             )}
             <button
-              className="btn btn-dark"
+              className="btn btn-success"
               onClick={() => {
                 setIsCameraTurnedOn((isCameraTurnedOn) => !isCameraTurnedOn);
               }}
             >
               {isCameraTurnedOn ? "Dừng quét" : "Quét ngay"}
             </button>
+            {dataQr !== null && customerQueue != undefined && (
+              <GetNumberDialog
+                queue={customerQueue}
+                insertCustomerToQueue={insertCustomerToQueueHandler}
+              />
+            )}
 
-            {dataQr !== null && (
-              <div className="alert alert-success"> {dataQr}</div>
+            {customerQueue == undefined && dataQr != null && (
+              <div className="alert alert-danger mt-3">Mã QR không đúng</div>
             )}
           </div>
         </section>
         <br />
+
         <section>
-          <h3 className={styles.title}>Danh sách hàng đợi</h3>
+          {queueHasCustomers && queueHasCustomers.length > 0 && (
+            <h3 className={styles.title}>Danh sách Hàng đợi của bạn</h3>
+          )}
+
+          <ul>
+            {queueHasCustomers &&
+              queueHasCustomers.map((row) => {
+                return (
+                  <li key={row.queues_QueueID + row.customers_CustomerID}>
+                    {row.customers_CustomerID}
+                  </li>
+                );
+              })}
+          </ul>
+        </section>
+
+        <section>
+          <h3 className={styles.title}>Danh sách Địa điểm</h3>
+          <ul>
+            {queues.map((queue) => {
+              return <li key={queue.QueueID}>{queue.Place}</li>;
+            })}
+          </ul>
         </section>
       </main>
 
@@ -201,34 +232,47 @@ const Home: NextPage<{ app_url: string; device_info: string }> = ({
 
 Home.getInitialProps = async ({
   req,
-}): Promise<{ app_url: string; device_info: string }> => {
+  res,
+}): Promise<{
+  app_url: string;
+  device_info: string;
+  queues: Queue[];
+  customerQueues: any;
+}> => {
   // const url = process.env.APP_URL + "/api/getstatus";
   // const res = await fetch(url);
   // const json = await res.json();
+
   const device_info = req?.headers["user-agent"] || "";
   const app_url = process.env.APP_URL || "";
+  const queues: Queue[] = await fetch(app_url + "/api/getqueue").then(
+    (queues) => queues.json()
+  );
+  // console.log(device_info);
+  // console.log(app_url);
 
-  console.log(device_info);
-  console.log(app_url);
+  // const customerQueues = await fetch(
+  //   app_url + `/api/getqueuehascustomers/${req?.headers.cookie}`
+  // ).then((res) => res.json());
 
-  return { app_url, device_info };
+  return { app_url, device_info, queues, customerQueues: [] };
 };
 
 export default Home;
 
 const registerCustomer = async (
   app_url: string,
-  customerid: string,
   deviceinfo: string
-) => {
+): Promise<RequestResponse> => {
   const url = `${app_url}/api/insertcustomer`;
-  const res = await fetch(url, {
+
+  const res: RequestResponse = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ customerid, deviceinfo }),
-  });
+    body: JSON.stringify({ customerid: md5(deviceinfo), deviceinfo }),
+  }).then((res) => res.json());
 
   return res;
 };
@@ -239,9 +283,9 @@ const addCustomerToQueue = async (
   customerid: string,
   order: string,
   status: string
-) => {
+): Promise<RequestResponse> => {
   const url = app_url + "/api/inserttoqueue";
-  const res = await fetch(url, {
+  const res: RequestResponse = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -250,31 +294,18 @@ const addCustomerToQueue = async (
       order,
       status,
     }),
-  });
+  }).then((res) => res.json());
 
   return res;
 };
 
-const getQueueID = async (app_url: string, queueCode: string) => {
-  const url = app_url + `/api/getqueue?id=${queueCode}`;
-  const res = await fetch(url);
-  const queues = await res.json();
-
-  // console.log(queues);
-  // console.log(typeof queues);
-
-  let queueid: string = "";
+const getQueueWithCode = (queueCode: string, queues: Queue[]) => {
+  let result: Queue | undefined;
   queues.forEach((queue: Queue) => {
-    // if (queue.Code === queueCode) {
-    //   return queue.QueueID;
-    // }
-
     if (queue.Code == queueCode) {
-      queueid = queue.QueueID.toString();
+      result = queue;
     }
-
-    // console.log(queue);
   });
 
-  return queueid;
+  return result;
 };

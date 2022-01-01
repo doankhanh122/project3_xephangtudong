@@ -1,22 +1,11 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { dbConnection } from "../../components/dbconnection";
-import { parseCookies } from "../../helpers";
-
-
-
-
-const md5 = require('md5')
-
-
-
 
 
 export default async function insertCustomerToQueue(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-
-
   const enrolltime = new Date(Date.now())
 
   console.log("Request: ");
@@ -40,20 +29,14 @@ export default async function insertCustomerToQueue(
         enrolltime,
         body.order,
         body.status
-        // body.queueid,
-        // body.customerid,
-        // enrolltime,
-        // 1,
-        // body.status
       ],
       (err: any, results: any, fields: any) => {
         if (err) {
           if (err.code == 'ER_DUP_ENTRY') {
             res.status(200).json({code: 'Duplicate', message: "Đang trong hàng đợi"})
           }
-          res.status(401).json({code: 'Fail', message: err});
-          console.log(err)
-          throw err;
+          res.status(200).json({code: 'Fail', message: err});
+
         }
 
         res.status(200).json({code: 'Success', message: "Đã thêm customer vào queue"});

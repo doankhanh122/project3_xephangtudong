@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { dbConnection } from "../../components/dbconnection";
 
-const sqlQuerry = "Select key from sessions";
+
 export default async function insertQueue(
   req: NextApiRequest,
   res: NextApiResponse

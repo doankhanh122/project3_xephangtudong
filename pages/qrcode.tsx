@@ -5,16 +5,7 @@ import { type } from "os";
 import { PropsWithChildren, useEffect, useState } from "react";
 import QRCode from "react-qr-code";
 import styles from "../styles/Home.module.css";
-
-export interface Queue {
-  QueueID: number;
-  EffectFrom: Date;
-  EffectTo: Date;
-  Author: string;
-  Place: string;
-  Edition: string;
-  Code: string;
-}
+import { Queue } from ".";
 
 const QrCodePage: NextPage<{ queues: Queue[] }> = ({ queues }) => {
   const { query } = useRouter();
