@@ -2,7 +2,7 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { dbConnection } from "../../lib/dbconnection";
 
 const sqlQuerry = "Select key from sessions";
-export default async function getStatus(
+export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {

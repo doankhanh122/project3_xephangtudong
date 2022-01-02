@@ -10,7 +10,7 @@ const md5 = require('md5')
 
 
 
-export default async function insertCustomer(
+export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {

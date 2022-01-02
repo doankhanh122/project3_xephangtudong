@@ -7,13 +7,7 @@ export default async function handler(
   res: NextApiResponse
 ) {
   const enrolltime = new Date(Date.now())
-
-  console.log("Request: ");
-  console.log(req.body);
-
   const body = req.body;
-  console.log("Body: ");
-  console.log(body.queueid);
   // (SELECT count(customers_customerid) FROM project3.queues_has_customers where queues_queueid = ?);
 
   dbConnection.connect((error: any) => {
@@ -22,19 +16,16 @@ export default async function handler(
     // (queues_queueid, customers_customerid, enrolltime, order, enrollstatus_enrollstatusid)
 
     dbConnection.query(
-      "INSERT INTO queues_has_customers values (?,?,?,?,?)",
+      `UPDATE queues_has_customers set enrolltime = ?, enrollstatus_enrollstatusid = ? where queues_queueid='${body.queueid}' and customers_customerid='${body.customerid}'`,
       [
-        body.queueid,
-        body.customerid,
         enrolltime,
-        body.order,
         body.status
       ],
       (err: any, results: any, fields: any) => {
         if (err) {
-          if (err.code == 'ER_DUP_ENTRY') {
-            res.status(200).json({code: 'Duplicate', message: "Đang trong hàng đợi"})
-          }
+        //   if (err.code == 'ER_DUP_ENTRY') {
+        //     res.status(200).json({code: 'Duplicate', message: "Đang trong hàng đợi"})
+        //   }
           res.status(200).json({code: 'Fail', message: err});
 
         }

@@ -11,6 +11,7 @@ import { AnyCnameRecord } from "dns";
 import GetNumberDialog from "../components/getNumberDialog";
 import CustomerQueues from "../components/customerQueues";
 import { useQueueHasCustomers } from "../lib/swr-hooks";
+import DuplicateWarning from "../components/duplicateWarning";
 
 const QrReader: any = dynamic(() => import("react-qr-reader"), { ssr: false });
 const md5 = require("md5");
@@ -55,25 +56,29 @@ const Home: NextPage<{
 }> = ({ app_url, device_info, queues }) => {
   // console.log("Customer Queue \n" + customerQueues[0].customers_CustomerID);
   const [customerQueue, setCustomerQueue] = useState<Queue>();
-  const [queueHasCustomers, setQueueHasCustomers] =
-    useState<QueueHasCustomers[]>();
+  const [cookie, setCookie] = useCookies(["customerId"]);
 
-  const [cookie, setCookie] = useCookies(["deviceInfo", "customerId"]);
-  setCookie("deviceInfo", device_info);
+  const { queueHasCustomers, isLoading, isError } = useQueueHasCustomers(
+    cookie.customerId
+  );
 
   const [isCameraTurnedOn, setIsCameraTurnedOn] = useState(false);
   const [dataQr, setDataQr] = useState(null);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [isTimeout, setIsTimeout] = useState(false);
+  const [isDuplicate, setIsDuplicate] = useState(false);
+
+  const [customerResult, setCustomerResult] = useState<QueueHasCustomers[]>();
 
   const handleScan = async (data: any) => {
     setDataQr(data);
 
     if (data != null && isCameraTurnedOn) {
-      const deviceinfo = cookie.deviceInfo;
       setIsCameraTurnedOn(false);
 
       // console.log("Customer ID cookie: " + cookie.customerid);
       const queue = getQueueWithCode(data, queues);
-      console.log(queue);
+      // console.log(queue);
       if (queue !== undefined) {
         setCustomerQueue(queue);
       } else {
@@ -88,12 +93,14 @@ const Home: NextPage<{
 
   const insertCustomerToQueueHandler = async () => {
     const customerid_cookie = cookie.customerId;
-    const deviceInfo = cookie.deviceInfo;
-    const customerId = md5(deviceInfo);
+    const customerId = md5(device_info);
     if (customerid_cookie === undefined) {
-      const registerCustomerRes = await registerCustomer(app_url, deviceInfo);
+      const registerCustomerRes = await registerCustomer(app_url, device_info);
 
-      if (registerCustomerRes.code === "Success") {
+      if (
+        registerCustomerRes.code === "Success" ||
+        registerCustomerRes.code === "Duplicate"
+      ) {
         setCookie("customerId", customerId);
 
         // Add to Queue
@@ -102,11 +109,14 @@ const Home: NextPage<{
             app_url,
             customerQueue.QueueID.toString(),
             customerId,
-            "0",
+            "1",
             "0"
           );
 
           if (addCustomerToQueueRes.code === "Success") {
+            setIsSuccess(true);
+          } else {
+            setIsSuccess(false);
           }
         }
       }
@@ -119,29 +129,38 @@ const Home: NextPage<{
           app_url,
           customerQueue.QueueID.toString(),
           customerId,
-          "0",
+          "1",
           "0"
         );
 
         if (addCustomerToQueueRes.code === "Success") {
+          setIsSuccess(true);
         } else if (addCustomerToQueueRes.code === "Duplicate") {
-          console.log("Duplicate");
+          setIsDuplicate(true);
         }
       }
     }
   };
 
-  const getQueueHasCustomers = useCallback(async () => {
-    const customerQueues = await fetch(
-      app_url + `/api/getqueuehascustomers/${cookie.customerId}`
-    ).then((res) => res.json());
+  const updateCustomerToQueueHandler = async () => {
+    if (customerQueue !== undefined) {
+      const updateCustomerToQueueRes = await updateCustomerToQueue(
+        app_url,
+        customerQueue.QueueID.toString(),
+        cookie.customerId,
+        "0"
+      );
 
-    setQueueHasCustomers(customerQueues);
-  }, []);
+      if (updateCustomerToQueueRes.code === "Success") {
+        setIsSuccess(true);
+      }
+    }
+  };
 
   useEffect(() => {
-    getQueueHasCustomers();
-  }, []);
+    // getQueueHasCustomers();
+    queueHasCustomers && setCustomerResult(queueHasCustomers);
+  }, [queueHasCustomers]);
 
   return (
     <div className={styles.container}>
@@ -185,23 +204,37 @@ const Home: NextPage<{
               />
             )}
 
+            {isDuplicate && (
+              <DuplicateWarning confirm={updateCustomerToQueueHandler} />
+            )}
+
             {customerQueue == undefined && dataQr != null && (
               <div className="alert alert-danger mt-3">Mã QR không đúng</div>
+            )}
+
+            {!isSuccess && dataQr != null && (
+              <div className="alert alert-danger mt-3">
+                Lấy STT không thành công
+              </div>
+            )}
+
+            {isSuccess && (
+              <div className="alert alert-success mt-3">
+                Đã thấy STT thành công
+              </div>
             )}
           </div>
         </section>
         <br />
 
         <section>
-          {queues.length > 0 &&
-            queueHasCustomers &&
-            queueHasCustomers.length > 0 && (
-              <CustomerQueues
-                queues={queues}
-                queuehascustomers={queueHasCustomers || []}
-              />
-            )}
-
+          {queues.length > 0 && customerResult && customerResult.length > 0 && (
+            <CustomerQueues
+              queues={queues}
+              queuehascustomers={customerResult || []}
+            />
+          )}
+          z
           <ul>
             {/* {queueHasCustomers &&
               queueHasCustomers.map((row) => {
@@ -281,18 +314,46 @@ const addCustomerToQueue = async (
   status: string
 ): Promise<RequestResponse> => {
   const url = app_url + "/api/inserttoqueue";
-  const res: RequestResponse = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      queueid,
-      customerid,
-      order,
-      status,
-    }),
-  }).then((res) => res.json());
+  try {
+    const res: RequestResponse = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        queueid,
+        customerid,
+        order,
+        status,
+      }),
+    }).then((res) => res.json());
 
-  return res;
+    return res;
+  } catch (error) {
+    throw error;
+  }
+};
+
+const updateCustomerToQueue = async (
+  app_url: string,
+  queueid: string,
+  customerid: string,
+  status: string
+): Promise<RequestResponse> => {
+  const url = app_url + "/api/updatetoqueue";
+  try {
+    const res: RequestResponse = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        queueid,
+        customerid,
+        status,
+      }),
+    }).then((res) => res.json());
+
+    return res;
+  } catch (error) {
+    throw error;
+  }
 };
 
 const getQueueWithCode = (queueCode: string, queues: Queue[]) => {

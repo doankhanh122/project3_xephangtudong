@@ -24,9 +24,15 @@ const CustomerQueues: React.FC<{
               }`;
             })}
             <hr />
-
             <strong>{" Số thứ tự của bạn: "}</strong>
-            <span className="badge bg-success">{row.Order}</span>
+            <span className="badge bg-success">{row.Order}</span> {}
+            <span className="badge bg-warning">{"Đang chờ"}</span>
+            <br />
+            <br />
+            <strong>{" Check In: "}</strong>
+            <span className="badge bg-success">
+              {new Date(row.EnrollTime).toLocaleString("vi-VN")}
+            </span>
           </div>
         );
       })}

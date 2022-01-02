@@ -2,7 +2,7 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { dbConnection } from "../../lib/dbconnection";
 
 
-export default async function insertQueue(
+export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {

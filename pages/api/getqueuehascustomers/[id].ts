@@ -13,7 +13,7 @@ export default async function getQueueHasCustomers(
       if (error) throw error;
       console.log("Da ket noi database!");
       dbConnection.query(
-        "Select * from queues_has_customers where queues_queueid = ? or customers_customerid = ?",
+        "Select * from queues_has_customers where (queues_queueid = ? or customers_customerid = ?) and enrollstatus_enrollstatusid = '0' order by enrolltime desc",
         [req.query.id, req.query.id],
         (err: any, results: any, fields: any) => {
           if (err) throw err;
