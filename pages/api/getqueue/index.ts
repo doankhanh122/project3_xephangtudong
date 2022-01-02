@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { dbConnection } from "../../../components/dbconnection";
+import { dbConnection } from "../../../lib/dbconnection";
 
 export default async function getQueue(
     req: NextApiRequest,

@@ -11,10 +11,10 @@ const QrCodePage: NextPage<{ queues: Queue[] }> = ({ queues }) => {
   const { query } = useRouter();
   const id_: any = query.id?.toString();
   const id: number | undefined = parseInt(id_);
-  console.log(typeof id);
-  console.log(id);
-  console.log(query);
-  console.log(typeof query);
+  // console.log(typeof id);
+  // console.log(id);
+  // console.log(query);
+  // console.log(typeof query);
   return (
     <main className={styles.main}>
       {isNaN(id) ? (

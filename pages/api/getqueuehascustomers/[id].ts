@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { useRouter } from "next/router";
-import { dbConnection } from "../../../components/dbconnection";
+import { dbConnection } from "../../../lib/dbconnection";
 // const {query} = useRouter();
 
 export default async function getQueueHasCustomers(

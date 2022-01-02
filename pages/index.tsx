@@ -3,15 +3,17 @@ import Head from "next/head";
 import { useCallback, useEffect, useState } from "react";
 import styles from "../styles/Home.module.css";
 import Warning from "../components/warning";
-
 import { useCookies } from "react-cookie";
 
 // import QrReader from 'react-qr-reader'
 import dynamic from "next/dynamic";
 import { AnyCnameRecord } from "dns";
 import GetNumberDialog from "../components/getNumberDialog";
+import CustomerQueues from "../components/customerQueues";
+import { useQueueHasCustomers } from "../lib/swr-hooks";
+
 const QrReader: any = dynamic(() => import("react-qr-reader"), { ssr: false });
-var md5 = require("md5");
+const md5 = require("md5");
 
 // function getTime(date: Date) {
 //   return date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds();
@@ -191,19 +193,24 @@ const Home: NextPage<{
         <br />
 
         <section>
-          {queueHasCustomers && queueHasCustomers.length > 0 && (
-            <h3 className={styles.title}>Danh sách Hàng đợi của bạn</h3>
-          )}
+          {queues.length > 0 &&
+            queueHasCustomers &&
+            queueHasCustomers.length > 0 && (
+              <CustomerQueues
+                queues={queues}
+                queuehascustomers={queueHasCustomers || []}
+              />
+            )}
 
           <ul>
-            {queueHasCustomers &&
+            {/* {queueHasCustomers &&
               queueHasCustomers.map((row) => {
                 return (
                   <li key={row.queues_QueueID + row.customers_CustomerID}>
-                    {row.customers_CustomerID}
+                    {row.queues_QueueID}
                   </li>
                 );
-              })}
+              })} */}
           </ul>
         </section>
 
@@ -237,25 +244,14 @@ Home.getInitialProps = async ({
   app_url: string;
   device_info: string;
   queues: Queue[];
-  customerQueues: any;
 }> => {
-  // const url = process.env.APP_URL + "/api/getstatus";
-  // const res = await fetch(url);
-  // const json = await res.json();
-
-  const device_info = req?.headers["user-agent"] || "";
+  const device_info = req?.headers["user-agent"] || navigator.userAgent;
   const app_url = process.env.APP_URL || "";
   const queues: Queue[] = await fetch(app_url + "/api/getqueue").then(
     (queues) => queues.json()
   );
-  // console.log(device_info);
-  // console.log(app_url);
 
-  // const customerQueues = await fetch(
-  //   app_url + `/api/getqueuehascustomers/${req?.headers.cookie}`
-  // ).then((res) => res.json());
-
-  return { app_url, device_info, queues, customerQueues: [] };
+  return { app_url, device_info, queues };
 };
 
 export default Home;

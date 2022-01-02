@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { useCookies } from "react-cookie";
-import { dbConnection } from "../../components/dbconnection";
+import { dbConnection } from "../../lib/dbconnection";
 import { parseCookies } from "../../helpers";
 
 

@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { dbConnection } from "../../components/dbconnection";
+import { dbConnection } from "../../lib/dbconnection";
 
 
 export default async function insertCustomerToQueue(
@@ -14,7 +14,7 @@ export default async function insertCustomerToQueue(
   const body = req.body;
   console.log("Body: ");
   console.log(body.queueid);
-
+  // (SELECT count(customers_customerid) FROM project3.queues_has_customers where queues_queueid = ?);
 
   dbConnection.connect((error: any) => {
     if (error) throw error;
