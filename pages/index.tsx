@@ -1,8 +1,7 @@
 import type { NextPage } from "next";
 import Head from "next/head";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import styles from "../styles/Home.module.css";
-import Warning from "../components/warning";
 import { useCookies } from "react-cookie";
 
 // import QrReader from 'react-qr-reader'
@@ -12,6 +11,7 @@ import GetNumberDialog from "../components/getNumberDialog";
 import CustomerQueues from "../components/customerQueues";
 import { useQueueHasCustomers } from "../lib/swr-hooks";
 import DuplicateWarning from "../components/duplicateWarning";
+import { GetServerSideProps } from "next";
 
 const QrReader: any = dynamic(() => import("react-qr-reader"), { ssr: false });
 const md5 = require("md5");
@@ -234,17 +234,6 @@ const Home: NextPage<{
               queuehascustomers={customerResult || []}
             />
           )}
-          z
-          <ul>
-            {/* {queueHasCustomers &&
-              queueHasCustomers.map((row) => {
-                return (
-                  <li key={row.queues_QueueID + row.customers_CustomerID}>
-                    {row.queues_QueueID}
-                  </li>
-                );
-              })} */}
-          </ul>
         </section>
 
         <section>
@@ -270,21 +259,15 @@ const Home: NextPage<{
   );
 };
 
-Home.getInitialProps = async ({
-  req,
-  res,
-}): Promise<{
-  app_url: string;
-  device_info: string;
-  queues: Queue[];
-}> => {
-  const device_info = req?.headers["user-agent"] || navigator.userAgent;
-  const app_url = process.env.APP_URL || "";
-  const queues: Queue[] = await fetch(app_url + "/api/getqueue").then(
-    (queues) => queues.json()
-  );
+export const getServerSideProps: GetServerSideProps = async (context) => {
+  // console.log(status);
 
-  return { app_url, device_info, queues };
+  const device_info = context.req.headers["user-agent"] || navigator.userAgent;
+  const app_url = process.env.APP_URL || "";
+  const queues: Queue[] = await fetch(app_url + "/api/getqueue").then((res) =>
+    res.json()
+  );
+  return { props: { app_url, device_info, queues } };
 };
 
 export default Home;
@@ -364,5 +347,16 @@ const getQueueWithCode = (queueCode: string, queues: Queue[]) => {
     }
   });
 
+  return result;
+};
+
+const makeid = (length: number) => {
+  var result = "";
+  var characters =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  var charactersLength = characters.length;
+  for (var i = 0; i < length; i++) {
+    result += characters.charAt(Math.floor(Math.random() * charactersLength));
+  }
   return result;
 };
