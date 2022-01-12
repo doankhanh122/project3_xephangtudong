@@ -1,48 +1,24 @@
+import { PrismaClient } from "@prisma/client";
 import { NextApiRequest, NextApiResponse } from "next";
-import { dbConnection } from "../../lib/dbconnection";
+import db from "../../lib/dbconnection";
 
+const prisma = new PrismaClient();
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  const enrolltime = new Date(Date.now())
-
-  console.log("Request: ");
-  console.log(req.body);
-
+  const enrolltime = new Date(Date.now());
   const body = req.body;
-  console.log("Body: ");
-  console.log(body.queueid);
-  // (SELECT count(customers_customerid) FROM project3.queues_has_customers where queues_queueid = ?);
-
-  dbConnection.connect((error: any) => {
-    if (error) throw error;
-    console.log("Da ket noi database!");
-    // (queues_queueid, customers_customerid, enrolltime, order, enrollstatus_enrollstatusid)
-
-    dbConnection.query(
-      "INSERT INTO queues_has_customers values (?,?,?,?,?)",
-      [
-        body.queueid,
-        body.customerid,
-        enrolltime,
-        body.order,
-        body.status
-      ],
-      (err: any, results: any, fields: any) => {
-        if (err) {
-          if (err.code == 'ER_DUP_ENTRY') {
-            res.status(200).json({code: 'Duplicate', message: "Đang trong hàng đợi"})
-          }
-          res.status(200).json({code: 'Fail', message: err});
-
-        }
-
-        res.status(200).json({code: 'Success', message: "Đã thêm customer vào queue"});
-      }
-    );
+  const inserttoqueue = await prisma.queue_has_customer.create({
+    data: {
+      queue_QueueID: body.queueid,
+      customer_CustomerID: body.customerid,
+      EnrollTime: enrolltime,
+      Order: body.order,
+      enrollstatus_EnrollStatusID: body.status,
+    },
   });
 
+  res.json(inserttoqueue);
 }
-

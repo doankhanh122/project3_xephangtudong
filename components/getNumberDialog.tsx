@@ -1,9 +1,9 @@
 import { Dialog, DialogTitle } from "@mui/material";
+import { queue } from "@prisma/client";
 import { useState } from "react";
-import { Queue } from "../pages";
 
 const GetNumberDialog: React.FC<{
-  queue: Queue;
+  queue: queue;
   insertCustomerToQueue: Function;
 }> = ({ queue, insertCustomerToQueue }) => {
   const [isDialogOpen, setIsDialogOpen] = useState(true);
@@ -25,8 +25,8 @@ const GetNumberDialog: React.FC<{
         </p>
 
         <p>
-          Thời gian: từ {queue.EffectFrom.toLocaleString("vi-VN")} đến{" "}
-          {queue.EffectTo.toLocaleString("vi-VN")}
+          Thời gian: từ {queue.EffectFrom?.toLocaleString("vi-VN")} đến{" "}
+          {queue.EffectTo?.toLocaleString("vi-VN")}
         </p>
         {/* <p>ID: {customerQueue?.QueueID}</p>
 

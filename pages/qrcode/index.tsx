@@ -1,8 +1,8 @@
 import { NextPage } from "next";
 import { useGetQueues } from "../../lib/swr-hooks";
-import { Queue } from "..";
 import QRCode from "react-qr-code";
 import Link from "next/link";
+import { queue } from "@prisma/client";
 
 const QrCodesPage: NextPage = () => {
   const { queues, isLoading, isError } = useGetQueues();
@@ -10,7 +10,7 @@ const QrCodesPage: NextPage = () => {
   return (
     <div>
       {queues &&
-        queues.map((queue: Queue) => {
+        queues.map((queue: queue) => {
           return (
             <li className="m-1" key={queue.QueueID}>
               <div className="card p-3">
@@ -34,8 +34,8 @@ const QrCodesPage: NextPage = () => {
                   </p>
                   <p>
                     <strong>Thời gian: </strong>{" "}
-                    {new Date(queue.EffectFrom).toLocaleString("vi-VN")} tới{" "}
-                    {new Date(queue.EffectTo).toLocaleString("vi-VN")}
+                    {queue.EffectFrom?.toLocaleString("vi-VN")} tới{" "}
+                    {queue.EffectTo?.toLocaleString("vi-VN")}
                   </p>
                   <p>
                     <strong>Edition: </strong> {queue.Edition}
@@ -44,7 +44,7 @@ const QrCodesPage: NextPage = () => {
                     <strong>Code: </strong> {queue.Code}
                   </p>
                   <div className="text-center">
-                    <QRCode value={queue.Code} />
+                    {queue.Code && <QRCode value={queue.Code} />}
                   </div>
                 </div>
               </div>

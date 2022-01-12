@@ -1,24 +1,18 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { useRouter } from "next/router";
-import { dbConnection } from "../../../lib/dbconnection";
-// const {query} = useRouter();
+import db from "../../../lib/dbconnection";
 
 export default async function getQueueHasCustomers(
-    req: NextApiRequest,
-    res: NextApiResponse
-  ) {
-    
-    // console.log(req)
-    dbConnection.connect((error: any) => {
-      if (error) throw error;
-      console.log("Da ket noi database!");
-      dbConnection.query(
-        "Select * from queues_has_customers where (queues_queueid = ? or customers_customerid = ?) and enrollstatus_enrollstatusid = '0' order by enrolltime desc",
-        [req.query.id, req.query.id],
-        (err: any, results: any, fields: any) => {
-          if (err) throw err;
-          res.status(200).json(results);
-        }
-      );
-    });
-  }
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  const queue_has_customer = await db.queue_has_customer.findMany({
+    where: {
+      OR: {
+        queue_QueueID: req.query.id?.toString(),
+        customer_CustomerID: req.query.id?.toString(),
+      },
+    },
+  });
+
+  res.json(queue_has_customer);
+}

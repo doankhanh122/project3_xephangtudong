@@ -1,10 +1,9 @@
+import { queue, queue_has_customer } from "@prisma/client";
 import { Fragment } from "react";
-import { useQueueHasCustomers } from "../lib/swr-hooks";
-import { Queue, QueueHasCustomers } from "../pages";
 
 const CustomerQueues: React.FC<{
-  queues: Queue[];
-  queuehascustomers: QueueHasCustomers[];
+  queues: queue[];
+  queuehascustomers: queue_has_customer[];
 }> = ({ queues, queuehascustomers }) => {
   return (
     <Fragment>
@@ -14,14 +13,12 @@ const CustomerQueues: React.FC<{
       </p>
       {queuehascustomers.map((row) => {
         return (
-          <div key={row.queues_QueueID} className="alert alert-success">
+          <div key={row.queue_QueueID} className="alert alert-success">
             <strong>{"ID: "} </strong>
-            {row.queues_QueueID}
+            {row.queue_QueueID}
             <strong>{" - Địa điểm: "}</strong>
             {queues.map((queue) => {
-              return `${
-                queue.QueueID == row.queues_QueueID ? queue.Place : ""
-              }`;
+              return `${queue.QueueID == row.queue_QueueID ? queue.Place : ""}`;
             })}
             <hr />
             <strong>{" Số thứ tự của bạn: "}</strong>
@@ -31,7 +28,7 @@ const CustomerQueues: React.FC<{
             <br />
             <strong>{" Check In: "}</strong>
             <span className="badge bg-success">
-              {new Date(row.EnrollTime).toLocaleString("vi-VN")}
+              {row.EnrollTime?.toLocaleString("vi-VN")}
             </span>
           </div>
         );

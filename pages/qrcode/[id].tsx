@@ -1,19 +1,18 @@
 import { NextPage } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
-
 import QRCode from "react-qr-code";
-import styles from "../styles/Home.module.css";
-import { Queue } from "..";
+
 import { useGetQueue } from "../../lib/swr-hooks";
 import { useCallback, useEffect, useState } from "react";
+import { queue } from "@prisma/client";
 
-const QrCodePage: NextPage<{ queues: Queue[] }> = ({ queues }) => {
+const QrCodePage: NextPage<{ queues: queue[] }> = ({ queues }) => {
   const router = useRouter();
   const id = router.query.id?.toString() || "";
   const { queue, isLoading, isError } = useGetQueue(id);
 
-  const [myQueue, setMyQueue] = useState<Queue>();
+  const [myQueue, setMyQueue] = useState<queue>();
 
   useEffect(() => {
     queue && setMyQueue(queue[0]);
@@ -40,8 +39,8 @@ const QrCodePage: NextPage<{ queues: Queue[] }> = ({ queues }) => {
             </p>
             <p>
               <strong>Thời gian: </strong>{" "}
-              {new Date(myQueue.EffectFrom).toLocaleString("vi-VN")} tới{" "}
-              {new Date(myQueue.EffectTo).toLocaleString("vi-VN")}
+              {myQueue.EffectFrom?.toLocaleString("vi-VN")} tới{" "}
+              {myQueue.EffectTo?.toLocaleString("vi-VN")}
             </p>
             <p>
               <strong>Edition: </strong> {myQueue.Edition}
@@ -50,7 +49,7 @@ const QrCodePage: NextPage<{ queues: Queue[] }> = ({ queues }) => {
               <strong>Code: </strong> {myQueue.Code}
             </p>
             <div className="text-center">
-              <QRCode value={myQueue.Code} />
+              {myQueue.Code && <QRCode value={myQueue.Code} />}
             </div>
 
             <div className="mt-2 text-center">

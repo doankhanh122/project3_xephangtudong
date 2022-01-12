@@ -1,0 +1,48 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model customer {
+  CustomerID         String               @id @db.VarChar(255)
+  Name               String?              @default("Anonymous") @db.VarChar(45)
+  DeviceInfomation   String?              @db.VarChar(255)
+  queue_has_customer queue_has_customer[]
+}
+
+model enrollstatus {
+  EnrollStatusID     Int                  @id
+  Name               String?              @db.VarChar(45)
+  queue_has_customer queue_has_customer[]
+}
+
+model queue {
+  QueueID            String               @id @db.VarChar(255)
+  EffectFrom         DateTime?            @db.DateTime(0)
+  EffectTo           DateTime?            @db.DateTime(0)
+  Author             String?              @db.VarChar(255)
+  Place              String?              @db.VarChar(255)
+  Edition            String?              @db.VarChar(255)
+  Code               String?              @db.VarChar(255)
+  queue_has_customer queue_has_customer[]
+}
+
+model queue_has_customer {
+  queue_QueueID               String       @db.VarChar(255)
+  customer_CustomerID         String       @db.VarChar(255)
+  EnrollTime                  DateTime?    @db.DateTime(0)
+  Order                       Int?         @default(1)
+  enrollstatus_EnrollStatusID Int
+  customer                    customer     @relation(fields: [customer_CustomerID], references: [CustomerID], onDelete: NoAction, onUpdate: NoAction, map: "fk_queue_has_customer_customers1")
+  enrollstatus                enrollstatus @relation(fields: [enrollstatus_EnrollStatusID], references: [EnrollStatusID], onDelete: NoAction, onUpdate: NoAction, map: "fk_queue_has_customer_enrollstatus1")
+  queue                       queue        @relation(fields: [queue_QueueID], references: [QueueID], onUpdate: Restrict, map: "fk_queue_has_customer_queueid1")
+
+  @@id([queue_QueueID, customer_CustomerID])
+  @@index([customer_CustomerID], map: "fk_queue_has_customer_customer1_idx")
+  @@index([enrollstatus_EnrollStatusID], map: "fk_queue_has_customer_enrollstatus1_idx")
+  @@index([queue_QueueID], map: "fk_queue_has_customer_queue1_idx")
+}

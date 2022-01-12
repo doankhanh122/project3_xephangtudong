@@ -1,6 +1,5 @@
 import { Dialog, DialogTitle } from "@mui/material";
 import { useState } from "react";
-import { Queue } from "../pages";
 
 const DuplicateWarning: React.FC<{
   confirm: Function;
