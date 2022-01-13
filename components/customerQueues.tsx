@@ -28,7 +28,8 @@ const CustomerQueues: React.FC<{
             <br />
             <strong>{" Check In: "}</strong>
             <span className="badge bg-success">
-              {row.EnrollTime?.toLocaleString("vi-VN")}
+              {row.EnrollTime &&
+                new Date(row.EnrollTime).toLocaleString("vi-VN")}
             </span>
           </div>
         );

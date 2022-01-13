@@ -1,6 +1,6 @@
 import type { NextPage } from "next";
 import Head from "next/head";
-import { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import styles from "../styles/Home.module.css";
 import { useCookies } from "react-cookie";
 
@@ -12,7 +12,7 @@ import CustomerQueues from "../components/customerQueues";
 import { useQueueHasCustomers } from "../lib/swr-hooks";
 import DuplicateWarning from "../components/duplicateWarning";
 import { GetServerSideProps } from "next";
-import { PrismaClient, queue, queue_has_customer } from "@prisma/client";
+import { queue, queue_has_customer } from "@prisma/client";
 import db from "../lib/dbconnection";
 
 const QrReader: any = dynamic(() => import("react-qr-reader"), { ssr: false });
@@ -24,26 +24,22 @@ export type RequestResponse = {
 };
 
 const Home: NextPage<{
-  app_url: string;
   device_info: string;
   queues_stringify: string;
-}> = ({ app_url, device_info, queues_stringify }) => {
+}> = ({ device_info, queues_stringify }) => {
   // console.log("Customer Queue \n" + customerQueues[0].customers_CustomerID);
   const queues: queue[] = JSON.parse(queues_stringify);
   const [customerQueue, setCustomerQueue] = useState<queue>();
   const [cookie, setCookie] = useCookies(["customerId"]);
 
-  const { queueHasCustomers, isLoading, isError } = useQueueHasCustomers(
-    cookie.customerId
-  );
-
   const [isCameraTurnedOn, setIsCameraTurnedOn] = useState(false);
   const [dataQr, setDataQr] = useState(null);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [isTimeout, setIsTimeout] = useState(false);
+  // const [hasCookie, setHasCookie] = useState(false);
+
   const [isDuplicate, setIsDuplicate] = useState(false);
 
-  const [customerResult, setCustomerResult] = useState<queue_has_customer[]>();
+  // const [customerResult, setCustomerResult] = useState<queue_has_customer[]>();
 
   const handleScan = async (data: any) => {
     setDataQr(data);
@@ -105,9 +101,16 @@ const Home: NextPage<{
 
         if (addCustomerToQueueRes) {
           setIsSuccess(true);
-        } else setIsSuccess(false);
+        } else {
+          setIsSuccess(false);
+          resetCookie();
+        }
       }
     }
+  };
+
+  const resetCookie = () => {
+    setCookie("customerId", undefined);
   };
 
   const updateCustomerToQueueHandler = async () => {
@@ -123,6 +126,12 @@ const Home: NextPage<{
       }
     }
   };
+
+  const { queueHasCustomers, isLoading, isError } = useQueueHasCustomers(
+    cookie.customerId
+  );
+
+  useEffect(() => {}, []);
 
   return (
     <div className={styles.container}>
@@ -185,15 +194,32 @@ const Home: NextPage<{
                 Đã thấy STT thành công
               </div>
             )}
+
+            <br />
+
+            <div className="btn btn-danger   mt-3" onClick={resetCookie}>
+              {" "}
+              Xóa cookie
+            </div>
           </div>
         </section>
         <br />
 
         <section>
-          {queues.length > 0 && customerResult && customerResult.length > 0 && (
+          {isLoading && (
+            <div className="spinner-border" role="status">
+              <span className="visually-hidden">Loading...</span>
+            </div>
+          )}
+          {isError && (
+            <div>
+              Lỗi !! Không thể lấy dữ liệu thông tin hàng đợi của quý khách
+            </div>
+          )}
+          {!isLoading && queueHasCustomers && queueHasCustomers.length > 0 && (
             <CustomerQueues
               queues={queues}
-              queuehascustomers={customerResult || []}
+              queuehascustomers={queueHasCustomers}
             />
           )}
         </section>
@@ -239,7 +265,10 @@ const registerCustomer = async (deviceinfo: string): Promise<boolean> => {
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ customerid: md5(deviceinfo), deviceinfo }),
+    body: JSON.stringify({
+      customerid: md5(deviceinfo + makeid(3)),
+      deviceinfo,
+    }),
   });
 
   return res.ok;

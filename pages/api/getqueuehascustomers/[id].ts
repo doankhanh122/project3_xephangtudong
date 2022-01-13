@@ -7,10 +7,12 @@ export default async function getQueueHasCustomers(
 ) {
   const queue_has_customer = await db.queue_has_customer.findMany({
     where: {
-      OR: {
-        queue_QueueID: req.query.id?.toString(),
-        customer_CustomerID: req.query.id?.toString(),
-      },
+      OR: [
+        {
+          queue_QueueID: req.query.id?.toString(),
+        },
+        { customer_CustomerID: req.query.id?.toString() },
+      ],
     },
   });
 
