@@ -23,14 +23,26 @@ const CustomerQueues: React.FC<{
             <hr />
             <strong>{" Số thứ tự của bạn: "}</strong>
             <span className="badge bg-success">{row.Order}</span> {}
-            <span className="badge bg-warning">{"Đang chờ"}</span>
-            <br />
-            <br />
-            <strong>{" Check In: "}</strong>
-            <span className="badge bg-success">
-              {row.EnrollTime &&
-                new Date(row.EnrollTime).toLocaleString("vi-VN")}
+            <span
+              className={`badge ${
+                row.enrollstatus_EnrollStatusID == 0 ? "bg-warning" : "bg-dark"
+              }`}
+            >
+              {row.enrollstatus_EnrollStatusID == 0
+                ? "Đang chờ"
+                : "Bạn đã phục vụ"}
             </span>
+            {row.enrollstatus_EnrollStatusID == 0 && (
+              <div>
+                {/* <br /> */}
+                <br />
+                <strong>{" Check In: "}</strong>
+                <span className="badge bg-success">
+                  {row.EnrollTime &&
+                    new Date(row.EnrollTime).toLocaleString("vi-VN")}
+                </span>
+              </div>
+            )}
           </div>
         );
       })}

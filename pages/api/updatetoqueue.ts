@@ -7,7 +7,7 @@ export default async function handler(
 ) {
   const body = req.body;
   const enrolltime = new Date(Date.now());
-  const queue_has_customer_data = JSON.parse(req.body);
+  // const queue_has_customer_data = JSON.parse(req.body);
   const inserttoqueue = await db.queue_has_customer.update({
     where: {
       queue_QueueID_customer_CustomerID: {
@@ -16,9 +16,9 @@ export default async function handler(
       },
     },
     data: {
-      enrollstatus_EnrollStatusID: body.status,
+      enrollstatus_EnrollStatusID: 0,
+      EnrollTime: enrolltime,
     },
   });
-
   res.json(inserttoqueue);
 }

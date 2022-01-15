@@ -14,6 +14,12 @@ export default async function getQueueHasCustomers(
         { customer_CustomerID: req.query.id?.toString() },
       ],
     },
+
+    orderBy: [
+      {
+        EnrollTime: "desc",
+      },
+    ],
   });
 
   res.json(queue_has_customer);

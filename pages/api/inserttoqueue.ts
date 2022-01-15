@@ -10,6 +10,7 @@ export default async function handler(
 ) {
   const enrolltime = new Date(Date.now());
   const body = req.body;
+
   const inserttoqueue = await prisma.queue_has_customer.create({
     data: {
       queue_QueueID: body.queueid,

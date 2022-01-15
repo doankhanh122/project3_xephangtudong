@@ -14,6 +14,8 @@ import DuplicateWarning from "../components/duplicateWarning";
 import { GetServerSideProps } from "next";
 import { queue, queue_has_customer } from "@prisma/client";
 import db from "../lib/dbconnection";
+import { mutate } from "swr";
+import WarningDialog from "../components/warningDialog";
 
 const QrReader: any = dynamic(() => import("react-qr-reader"), { ssr: false });
 const md5 = require("md5");
@@ -30,7 +32,7 @@ const Home: NextPage<{
   // console.log("Customer Queue \n" + customerQueues[0].customers_CustomerID);
   const queues: queue[] = JSON.parse(queues_stringify);
   const [customerQueue, setCustomerQueue] = useState<queue>();
-  const [cookie, setCookie] = useCookies(["customerId"]);
+  const [cookie, setCookie, removeCookie] = useCookies(["customerId"]);
 
   const [isCameraTurnedOn, setIsCameraTurnedOn] = useState(false);
   const [dataQr, setDataQr] = useState(null);
@@ -38,6 +40,8 @@ const Home: NextPage<{
   // const [hasCookie, setHasCookie] = useState(false);
 
   const [isDuplicate, setIsDuplicate] = useState(false);
+
+  const [isClickResetCookie, setIsClickResetCookie] = useState(false);
 
   // const [customerResult, setCustomerResult] = useState<queue_has_customer[]>();
 
@@ -63,16 +67,23 @@ const Home: NextPage<{
   };
 
   const insertCustomerToQueueHandler = async () => {
-    const customerid_cookie = cookie.customerId;
-    const customerId = md5(device_info);
+    const customerid_cookie = await cookie.customerId;
+
     if (customerid_cookie === undefined) {
-      const registerCustomerRes = await registerCustomer(device_info);
+      const customerId = md5(device_info + makeid(3));
+      const registerCustomerRes = await registerCustomer(
+        customerId,
+        device_info
+      );
 
       if (registerCustomerRes) {
         setCookie("customerId", customerId);
-
         // Add to Queue
-        if (customerQueue !== undefined) {
+
+        if (customerQueue == undefined) {
+          // ma qrcode khong xac dinh
+          setIsSuccess(false);
+        } else {
           const addCustomerToQueueRes = await addCustomerToQueue(
             customerQueue.QueueID.toString(),
             customerId,
@@ -82,6 +93,8 @@ const Home: NextPage<{
 
           if (addCustomerToQueueRes) {
             setIsSuccess(true);
+            // Refetch lại hàng đợi khách đã đăng ký
+            mutate(`/api/getqueuehascustomers/${customerId}`);
           } else {
             setIsSuccess(false);
           }
@@ -92,37 +105,52 @@ const Home: NextPage<{
 
       // Add to Queue
       if (customerQueue !== undefined) {
-        const addCustomerToQueueRes = await addCustomerToQueue(
-          customerQueue.QueueID.toString(),
-          customerId,
-          1,
-          0
+        const queueId = customerQueue.QueueID.toString();
+
+        const isCustomerAlreadyInQueue = checkIsDuplicateQueue(
+          queueId,
+          queueHasCustomers
         );
 
-        if (addCustomerToQueueRes) {
-          setIsSuccess(true);
+        if (isCustomerAlreadyInQueue) {
+          setIsDuplicate(true);
         } else {
-          setIsSuccess(false);
-          resetCookie();
+          const addCustomerToQueueRes = await addCustomerToQueue(
+            customerQueue.QueueID.toString(),
+            customerid_cookie,
+            1,
+            0
+          );
+
+          if (addCustomerToQueueRes) {
+            setIsSuccess(true);
+            // Refetch lại hàng đợi khách đã đăng ký
+            mutate(`/api/getqueuehascustomers/${cookie.customerId}`);
+          } else {
+            setIsSuccess(false);
+            // await resetCookie();
+          }
         }
       }
     }
   };
 
-  const resetCookie = () => {
-    setCookie("customerId", undefined);
+  const resetCookie = async () => {
+    await removeCookie("customerId");
   };
 
   const updateCustomerToQueueHandler = async () => {
-    if (customerQueue !== undefined) {
+    setIsDuplicate(false);
+    if (customerQueue !== undefined && !isLoading && !isError) {
       const res = await updateCustomerToQueue(
         customerQueue.QueueID.toString(),
-        cookie.customerId,
-        "0"
+        cookie.customerId
       );
 
       if (res) {
         setIsSuccess(true);
+        // Refetch lại hàng đợi khách đã đăng ký
+        mutate(`/api/getqueuehascustomers/${cookie.customerId}`);
       }
     }
   };
@@ -130,6 +158,20 @@ const Home: NextPage<{
   const { queueHasCustomers, isLoading, isError } = useQueueHasCustomers(
     cookie.customerId
   );
+
+  const checkIsDuplicateQueue = (
+    queueId: string,
+    queue_has_customers: queue_has_customer[]
+  ): boolean => {
+    let result = false;
+    queue_has_customers.forEach((row) => {
+      if (row.queue_QueueID == queueId) {
+        result = true;
+      }
+    });
+
+    return result;
+  };
 
   useEffect(() => {}, []);
 
@@ -197,10 +239,26 @@ const Home: NextPage<{
 
             <br />
 
-            <div className="btn btn-danger   mt-3" onClick={resetCookie}>
+            <div
+              className="btn btn-danger   mt-3"
+              onClick={() => {
+                setIsClickResetCookie((x) => !x);
+              }}
+            >
               {" "}
               Xóa cookie
             </div>
+
+            {isClickResetCookie && (
+              <WarningDialog
+                title="Bạn có chắc chắn muốn xóa Cookie"
+                desc="Xóa cookie sẽ xóa toàn bộ dữ liệu hàng đợi của bạn"
+                action={resetCookie}
+                cancel={() => {
+                  setIsClickResetCookie(false);
+                }}
+              />
+            )}
           </div>
         </section>
         <br />
@@ -257,7 +315,10 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
 export default Home;
 
-const registerCustomer = async (deviceinfo: string): Promise<boolean> => {
+const registerCustomer = async (
+  customerid: string,
+  deviceinfo: string
+): Promise<boolean> => {
   // const url = `${app_url}/api/insertcustomer`;
   const url = `/api/insertcustomer`;
   const res = await fetch(url, {
@@ -266,7 +327,7 @@ const registerCustomer = async (deviceinfo: string): Promise<boolean> => {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      customerid: md5(deviceinfo + makeid(3)),
+      customerid,
       deviceinfo,
     }),
   });
@@ -299,18 +360,16 @@ const addCustomerToQueue = async (
 
 const updateCustomerToQueue = async (
   queueid: string,
-  customerid: string,
-  status: string
+  customerid: string
 ): Promise<boolean> => {
   const url = "/api/updatetoqueue";
 
   const res = await fetch(url, {
-    method: "POST",
+    method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       queueid,
       customerid,
-      status,
     }),
   });
 
