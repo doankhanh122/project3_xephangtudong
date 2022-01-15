@@ -77,7 +77,7 @@ const Home: NextPage<{
       );
 
       if (registerCustomerRes) {
-        setCookie("customerId", customerId);
+        await setCookie("customerId", customerId);
         // Add to Queue
 
         if (customerQueue == undefined) {
