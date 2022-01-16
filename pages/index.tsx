@@ -36,19 +36,22 @@ const Home: NextPage<{
 
   const [isCameraTurnedOn, setIsCameraTurnedOn] = useState(false);
   const [dataQr, setDataQr] = useState(null);
-  const [isSuccess, setIsSuccess] = useState(false);
+  const [isSuccess, setIsSuccess] = useState<boolean | null>(null);
   // const [hasCookie, setHasCookie] = useState(false);
 
   const [isDuplicate, setIsDuplicate] = useState(false);
 
   const [isClickResetCookie, setIsClickResetCookie] = useState(false);
 
+  const [isRequesting, setIsRequesting] = useState(false);
+
   // const [customerResult, setCustomerResult] = useState<queue_has_customer[]>();
 
   const handleScan = async (data: any) => {
-    setDataQr(data);
+    setDataQr(null);
 
     if (data != null && isCameraTurnedOn) {
+      setDataQr(data);
       setIsCameraTurnedOn(false);
 
       // console.log("Customer ID cookie: " + cookie.customerid);
@@ -71,10 +74,13 @@ const Home: NextPage<{
 
     if (customerid_cookie === undefined) {
       const customerId = md5(device_info + makeid(3));
+      setIsRequesting(true);
       const registerCustomerRes = await registerCustomer(
         customerId,
         device_info
       );
+
+      setIsRequesting(false);
 
       if (registerCustomerRes) {
         await setCookie("customerId", customerId);
@@ -84,12 +90,16 @@ const Home: NextPage<{
           // ma qrcode khong xac dinh
           setIsSuccess(false);
         } else {
+          setIsRequesting(true);
+
           const addCustomerToQueueRes = await addCustomerToQueue(
             customerQueue.QueueID.toString(),
             customerId,
             1,
             0
           );
+
+          setIsRequesting(false);
 
           if (addCustomerToQueueRes) {
             setIsSuccess(true);
@@ -115,12 +125,16 @@ const Home: NextPage<{
         if (isCustomerAlreadyInQueue) {
           setIsDuplicate(true);
         } else {
+          setIsRequesting(true);
+
           const addCustomerToQueueRes = await addCustomerToQueue(
             customerQueue.QueueID.toString(),
             customerid_cookie,
             1,
             0
           );
+
+          setIsRequesting(false);
 
           if (addCustomerToQueueRes) {
             setIsSuccess(true);
@@ -142,10 +156,14 @@ const Home: NextPage<{
   const updateCustomerToQueueHandler = async () => {
     setIsDuplicate(false);
     if (customerQueue !== undefined && !isLoading && !isError) {
+      setIsRequesting(true);
+
       const res = await updateCustomerToQueue(
         customerQueue.QueueID.toString(),
         cookie.customerId
       );
+
+      setIsRequesting(false);
 
       if (res) {
         setIsSuccess(true);
@@ -205,6 +223,7 @@ const Home: NextPage<{
             <button
               className="btn btn-success"
               onClick={() => {
+                setIsSuccess(null);
                 setIsCameraTurnedOn((isCameraTurnedOn) => !isCameraTurnedOn);
               }}
             >
@@ -221,19 +240,28 @@ const Home: NextPage<{
               <DuplicateWarning confirm={updateCustomerToQueueHandler} />
             )}
 
-            {customerQueue == undefined && dataQr != null && (
+            {customerQueue == undefined && dataQr !== null && (
               <div className="alert alert-danger mt-3">Mã QR không đúng</div>
             )}
 
-            {!isSuccess && dataQr != null && (
-              <div className="alert alert-danger mt-3">
-                Lấy STT không thành công
-              </div>
-            )}
+            {!isSuccess &&
+              isSuccess != null &&
+              !isRequesting &&
+              dataQr !== null && (
+                <div className="alert alert-danger mt-3">
+                  Lấy STT không thành công
+                </div>
+              )}
 
-            {isSuccess && (
+            {isSuccess && isSuccess != null && !isCameraTurnedOn && (
               <div className="alert alert-success mt-3">
                 Đã thấy STT thành công
+              </div>
+            )}
+            <br />
+            {isRequesting && (
+              <div className="spinner-border" role="status">
+                <span className="visually-hidden">Loading...</span>
               </div>
             )}
 
