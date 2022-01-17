@@ -7,7 +7,8 @@ const WarningDialog: React.FC<{
   action: Function;
   onClose: Function;
   open: boolean;
-}> = ({ title, desc, action, onClose, open }) => {
+  withButton?: boolean;
+}> = ({ title, desc, action, onClose, open, withButton = true }) => {
   // const [isDialogOpen, setIsDialogOpen] = useState(true);
   const onCloseHandler = () => {
     onClose();
@@ -29,14 +30,16 @@ const WarningDialog: React.FC<{
           </p>
         </div>
       </DialogContent>
-      <div className="text-center">
-        <button className="btn btn-success m-3" onClick={acceptHandler}>
-          OK
-        </button>
-        <button className="btn btn-danger m-3" onClick={onCloseHandler}>
-          Cancel
-        </button>
-      </div>
+      {withButton && (
+        <div className="text-center">
+          <button className="btn btn-success m-3" onClick={acceptHandler}>
+            OK
+          </button>
+          <button className="btn btn-danger m-3" onClick={onCloseHandler}>
+            Cancel
+          </button>
+        </div>
+      )}
     </Dialog>
   );
 };

@@ -16,6 +16,8 @@ import db from "../lib/dbconnection";
 import { mutate } from "swr";
 import WarningDialog from "../components/warningDialog";
 import Spinner from "../components/spinner";
+import { useRouter } from "next/router";
+import Link from "next/link";
 
 const QrReader: any = dynamic(() => import("react-qr-reader"), { ssr: false });
 const md5 = require("md5");
@@ -50,31 +52,12 @@ const Home: NextPage<{
 
   // const [customerResult, setCustomerResult] = useState<queue_has_customer[]>();
 
-  // const handleScan = async (data: any) => {
-  //   setDataQr(null);
-
-  //   if (data != null && isCameraTurnedOn) {
-  //     setDataQr(data);
-  //     setIsCameraTurnedOn(false);
-
-  //     // console.log("Customer ID cookie: " + cookie.customerid);
-  //     const queue = getQueueWithCode(data, queues);
-  //     // console.log(queue);
-  //     if (queue !== undefined) {
-  //       setCustomerQueue(queue);
-  //     } else {
-  //       setCustomerQueue(undefined);
-  //     }
-  //   }
-  // };
-
   const handleScan = async (data: any) => {
     setDataQr(null);
 
     if (data != null && isCameraTurnedOn) {
       const raw_array = data.split("/");
-      const code_string = raw_array[raw_array.length - 1];
-      console.log(raw_array);
+      const code_string = raw_array[raw_array.lenght - 1];
       setDataQr(code_string);
       setIsCameraTurnedOn(false);
 
@@ -222,12 +205,18 @@ const Home: NextPage<{
 
     return { isDouble, status };
   };
-
+  const { asPath, route, query } = useRouter();
+  console.log(query.slug);
   useEffect(() => {
-    // setCookie("customerId", "khanh", {
-    //   path: "/",
-    //   expires: new Date(Date.now() + 10 * 1000),
-    // });
+    if (query.slug && query.slug?.length > 0) {
+      const queue = getQueueWithCode(query.slug[0], queues);
+      console.log(queue);
+      if (queue !== undefined) {
+        setCustomerQueue(queue);
+      } else {
+        setCustomerQueue(undefined);
+      }
+    }
   }, []);
 
   return (
@@ -240,24 +229,8 @@ const Home: NextPage<{
 
       <main className={styles.main}>
         <section className="text-center">
-          <h3>Mời bạn lấy số thứ tự</h3>
           <div className={styles.description}>
-            <label>Quét mã QR để lấy số thứ tự</label>
-
-            <p></p>
-
-            {isCameraTurnedOn && (
-              <div className="card mb-3">
-                <QrReader
-                  delay={300}
-                  style={{ height: 240, width: 240, margin: "auto" }}
-                  onError={handleError}
-                  onScan={handleScan}
-                  legacyMode={false}
-                />
-              </div>
-            )}
-            <button
+            {/* <button
               className="btn btn-success"
               onClick={() => {
                 setIsSuccess(null);
@@ -265,14 +238,14 @@ const Home: NextPage<{
               }}
             >
               <h4>{isCameraTurnedOn ? "Dừng quét" : "Quét ngay"}</h4>
-            </button>
+            </button> */}
 
             <GetNumberDialog
               queue={customerQueue}
               insertCustomerToQueue={insertCustomerToQueueHandler}
-              open={dataQr !== null && customerQueue != undefined}
+              open={customerQueue != undefined}
               onClose={() => {
-                setDataQr(null);
+                setCustomerQueue(undefined);
               }}
             />
 
@@ -346,18 +319,12 @@ const Home: NextPage<{
 
             {isRequesting && <Spinner />}
 
-            <br />
-            {!isCameraTurnedOn && (
-              <div
-                className="btn btn-danger   mt-3"
-                onClick={() => {
-                  setIsClickResetCookie(true);
-                }}
-              >
-                {" "}
-                Xóa cookie
-              </div>
-            )}
+            <div className="text-decoration-none mt-3">
+              {" "}
+              <a className="text-decoration-none">
+                <Link href={"/"}>Trở về trang chủ</Link>
+              </a>
+            </div>
 
             <WarningDialog
               title="Bạn có chắc chắn muốn xóa Cookie"

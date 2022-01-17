@@ -3,40 +3,38 @@ import { queue } from "@prisma/client";
 import { useState } from "react";
 
 const GetNumberDialog: React.FC<{
-  queue: queue;
+  queue: queue | undefined;
   insertCustomerToQueue: Function;
-}> = ({ queue, insertCustomerToQueue }) => {
-  const [isDialogOpen, setIsDialogOpen] = useState(true);
-  const dialogOpenHandler = () => {
-    setIsDialogOpen((value) => !value);
+  onClose: Function;
+  open: boolean;
+}> = ({ queue, insertCustomerToQueue, onClose, open }) => {
+  const onCloseHandler = () => {
+    onClose();
   };
 
   const getNumberHandler = () => {
     insertCustomerToQueue();
-    setIsDialogOpen((value) => !value);
+    onClose();
   };
 
   return (
-    <Dialog onClose={() => {}} open={isDialogOpen}>
+    <Dialog onClose={onCloseHandler} open={open}>
       <DialogTitle>Bạn chắc chắn muốn lấy STT cho địa điểm này?</DialogTitle>
       <div className="p-3">
         <p>
-          <strong>{queue.Place}</strong>
+          <strong>{queue && queue.Place}</strong>
         </p>
 
         <p>
-          Thời gian: từ {queue.EffectFrom?.toLocaleString("vi-VN")} đến{" "}
-          {queue.EffectTo?.toLocaleString("vi-VN")}
+          Thời gian: từ {queue && queue.EffectFrom?.toLocaleString("vi-VN")} đến{" "}
+          {queue && queue.EffectTo?.toLocaleString("vi-VN")}
         </p>
-        {/* <p>ID: {customerQueue?.QueueID}</p>
-
-    <p>Code: {customerQueue?.Code}</p> */}
 
         <div className="text-center">
           <button className="btn btn-success m-3" onClick={getNumberHandler}>
             Lấy số thứ tự
           </button>
-          <button className="btn btn-danger m-3" onClick={dialogOpenHandler}>
+          <button className="btn btn-danger m-3" onClick={onCloseHandler}>
             Hủy
           </button>
         </div>

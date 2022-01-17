@@ -1,10 +1,10 @@
-import { NextPage } from "next";
+import { GetServerSideProps, NextPage } from "next";
 import { useGetQueues } from "../../lib/swr-hooks";
 import QRCode from "react-qr-code";
 import Link from "next/link";
 import { queue } from "@prisma/client";
 
-const QrCodesPage: NextPage = () => {
+const QrCodesPage: NextPage<{ app_url: string }> = ({ app_url }) => {
   const { queues, isLoading, isError } = useGetQueues();
 
   return (
@@ -44,7 +44,9 @@ const QrCodesPage: NextPage = () => {
                     <strong>Code: </strong> {queue.Code}
                   </p>
                   <div className="text-center">
-                    {queue.Code && <QRCode value={queue.Code} />}
+                    {queue.Code && (
+                      <QRCode value={`${app_url}/${queue.Code}`} />
+                    )}
                   </div>
                 </div>
               </div>
@@ -54,6 +56,12 @@ const QrCodesPage: NextPage = () => {
         })}
     </div>
   );
+};
+
+export const getServerSideProps: GetServerSideProps = async (context) => {
+  const app_url = process.env.APP_URL || "";
+
+  return { props: { app_url } };
 };
 
 export default QrCodesPage;

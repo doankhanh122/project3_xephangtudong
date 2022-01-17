@@ -108,6 +108,10 @@
   margin-left: 0.5rem;
 }
 
+.bignum {
+  font-size: 3rem;
+}
+
 @media (max-width: 600px) {
   .grid {
     width: 100%;
