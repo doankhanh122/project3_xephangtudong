@@ -5,21 +5,20 @@ const WarningDialog: React.FC<{
   title: string;
   desc: string;
   action: Function;
-  cancel?: Function;
-}> = ({ title, desc, action, cancel }) => {
-  const [isDialogOpen, setIsDialogOpen] = useState(true);
-  const closeDialog = () => {
-    setIsDialogOpen(false);
-    cancel && cancel();
+  onClose: Function;
+  open: boolean;
+}> = ({ title, desc, action, onClose, open }) => {
+  // const [isDialogOpen, setIsDialogOpen] = useState(true);
+  const onCloseHandler = () => {
+    onClose();
   };
 
   const acceptHandler = () => {
     action();
-    setIsDialogOpen(false);
   };
 
   return (
-    <Dialog onClose={() => {}} open={isDialogOpen}>
+    <Dialog onClose={onCloseHandler} open={open}>
       <DialogTitle>
         <strong>{title}</strong>
       </DialogTitle>
@@ -34,7 +33,7 @@ const WarningDialog: React.FC<{
         <button className="btn btn-success m-3" onClick={acceptHandler}>
           OK
         </button>
-        <button className="btn btn-danger m-3" onClick={closeDialog}>
+        <button className="btn btn-danger m-3" onClick={onCloseHandler}>
           Cancel
         </button>
       </div>

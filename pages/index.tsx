@@ -1,6 +1,6 @@
 import type { NextPage } from "next";
 import Head from "next/head";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import styles from "../styles/Home.module.css";
 import { useCookies } from "react-cookie";
 
@@ -10,12 +10,13 @@ import { AnyCnameRecord } from "dns";
 import GetNumberDialog from "../components/getNumberDialog";
 import CustomerQueues from "../components/customerQueues";
 import { useQueueHasCustomers } from "../lib/swr-hooks";
-import DuplicateWarning from "../components/duplicateWarning";
 import { GetServerSideProps } from "next";
 import { queue, queue_has_customer } from "@prisma/client";
 import db from "../lib/dbconnection";
 import { mutate } from "swr";
 import WarningDialog from "../components/warningDialog";
+import Spinner from "../components/spinner";
+import { Dialog, DialogContent, DialogTitle } from "@mui/material";
 
 const QrReader: any = dynamic(() => import("react-qr-reader"), { ssr: false });
 const md5 = require("md5");
@@ -39,7 +40,10 @@ const Home: NextPage<{
   const [isSuccess, setIsSuccess] = useState<boolean | null>(null);
   // const [hasCookie, setHasCookie] = useState(false);
 
-  const [isDuplicate, setIsDuplicate] = useState(false);
+  const [isDuplicate, setIsDuplicate] = useState({
+    isDouble: false,
+    status: 0,
+  });
 
   const [isClickResetCookie, setIsClickResetCookie] = useState(false);
 
@@ -121,13 +125,13 @@ const Home: NextPage<{
       if (customerQueue !== undefined) {
         const queueId = customerQueue.QueueID.toString();
 
-        const isCustomerAlreadyInQueue = checkIsDuplicateQueue(
+        const { isDouble, status } = checkIsDuplicateQueue(
           queueId,
           queueHasCustomers
         );
 
-        if (isCustomerAlreadyInQueue) {
-          setIsDuplicate(true);
+        if (isDouble) {
+          setIsDuplicate({ isDouble: isDouble, status: status });
         } else {
           setIsRequesting(true);
 
@@ -158,7 +162,9 @@ const Home: NextPage<{
   };
 
   const updateCustomerToQueueHandler = async () => {
-    setIsDuplicate(false);
+    setIsDuplicate((state) => {
+      return { isDouble: false, status: state.status };
+    });
     if (customerQueue !== undefined && !isLoading && !isError) {
       setIsRequesting(true);
 
@@ -184,15 +190,17 @@ const Home: NextPage<{
   const checkIsDuplicateQueue = (
     queueId: string,
     queue_has_customers: queue_has_customer[]
-  ): boolean => {
-    let result = false;
+  ): { isDouble: boolean; status: number } => {
+    let isDouble: boolean = false,
+      status: number = 0;
     queue_has_customers.forEach((row) => {
       if (row.queue_QueueID == queueId) {
-        result = true;
+        isDouble = true;
+        status = row.enrollstatus_EnrollStatusID;
       }
     });
 
-    return result;
+    return { isDouble, status };
   };
 
   useEffect(() => {
@@ -214,12 +222,12 @@ const Home: NextPage<{
         <section>
           <h3 className={styles.title}>Lấy số thứ tự</h3>
           <div className={styles.description}>
-            <label>Quét mã QR để lấy số thứ tự </label>
+            <label>Quét mã QR để lấy số thứ tự</label>
 
             <p></p>
 
             {isCameraTurnedOn && (
-              <div className="card">
+              <div className="card mb-3">
                 <QrReader
                   delay={300}
                   style={{ height: 240, width: 240, margin: "auto" }}
@@ -236,7 +244,7 @@ const Home: NextPage<{
                 setIsCameraTurnedOn((isCameraTurnedOn) => !isCameraTurnedOn);
               }}
             >
-              {isCameraTurnedOn ? "Dừng quét" : "Quét ngay"}
+              <h4>{isCameraTurnedOn ? "Dừng quét" : "Quét ngay"}</h4>
             </button>
             {dataQr !== null && customerQueue != undefined && (
               <GetNumberDialog
@@ -245,9 +253,42 @@ const Home: NextPage<{
               />
             )}
 
-            {isDuplicate && (
-              <DuplicateWarning confirm={updateCustomerToQueueHandler} />
-            )}
+            {/* <DuplicateWarning confirm={updateCustomerToQueueHandler} /> */}
+            {/* Hiện cảnh báo khách hàng đã lấy STT rồi và đã được phục vụ rồi*/}
+            <WarningDialog
+              title="Cảnh báo"
+              desc={`Bạn đã lấy số STT cho địa điểm: ${customerQueue?.Place}, bạn có chắc chắn muốn lấy lại STT
+                mới?`}
+              action={updateCustomerToQueueHandler}
+              onClose={() => {
+                setIsDuplicate((state) => {
+                  return { isDouble: false, status: state.status };
+                });
+              }}
+              open={isDuplicate.isDouble && isDuplicate.status == 1}
+            />
+
+            {/* Hiện cảnh báo nếu người dùng đã lấy STT và đang chờ đến lượt */}
+            <Dialog
+              open={isDuplicate.isDouble && isDuplicate.status == 0}
+              onClose={() => {
+                setIsDuplicate((state) => {
+                  state.isDouble = false;
+                  return state;
+                });
+              }}
+            >
+              <DialogTitle>
+                <strong>Thông báo</strong>
+              </DialogTitle>
+              <DialogContent>
+                <p>
+                  <strong>
+                    Bạn đã lấy số thứ tự, vui lòng chờ đến lượt bạn nhé
+                  </strong>
+                </p>
+              </DialogContent>
+            </Dialog>
 
             {customerQueue == undefined && dataQr !== null && (
               <div className="alert alert-danger mt-3">Mã QR không đúng</div>
@@ -267,45 +308,37 @@ const Home: NextPage<{
                 Đã thấy STT thành công
               </div>
             )}
+
+            {isRequesting && <Spinner />}
+
             <br />
-            {isRequesting && (
-              <div className="spinner-border" role="status">
-                <span className="visually-hidden">Loading...</span>
+            {!isCameraTurnedOn && (
+              <div
+                className="btn btn-danger   mt-3"
+                onClick={() => {
+                  setIsClickResetCookie(true);
+                }}
+              >
+                {" "}
+                Xóa cookie
               </div>
             )}
 
-            <br />
-
-            <div
-              className="btn btn-danger   mt-3"
-              onClick={() => {
-                setIsClickResetCookie((x) => !x);
+            <WarningDialog
+              title="Bạn có chắc chắn muốn xóa Cookie"
+              desc="Xóa cookie sẽ xóa toàn bộ dữ liệu hàng đợi của bạn"
+              action={resetCookie}
+              onClose={() => {
+                setIsClickResetCookie(false);
               }}
-            >
-              {" "}
-              Xóa cookie
-            </div>
-
-            {isClickResetCookie && (
-              <WarningDialog
-                title="Bạn có chắc chắn muốn xóa Cookie"
-                desc="Xóa cookie sẽ xóa toàn bộ dữ liệu hàng đợi của bạn"
-                action={resetCookie}
-                cancel={() => {
-                  setIsClickResetCookie(false);
-                }}
-              />
-            )}
+              open={isClickResetCookie}
+            />
           </div>
         </section>
-        <br />
+        {/* <br /> */}
 
         <section>
-          {isLoading && (
-            <div className="spinner-border" role="status">
-              <span className="visually-hidden">Loading...</span>
-            </div>
-          )}
+          {isLoading && <Spinner />}
           {isError && (
             <div>
               Lỗi !! Không thể lấy dữ liệu thông tin hàng đợi của quý khách
@@ -319,24 +352,18 @@ const Home: NextPage<{
           )}
         </section>
 
-        <section>
+        {/* <section>
           <h3 className={styles.title}>Danh sách Địa điểm</h3>
           <ul>
             {queues.map((queue) => {
               return <li key={queue.QueueID}>{queue.Place}</li>;
             })}
           </ul>
-        </section>
+        </section> */}
       </main>
 
       <footer className={styles.footer}>
-        <a
-          href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Giảng viên hướng dẫn: Thầy Nguyễn Đức Tiến
-        </a>
+        <p>Giảng viên hướng dẫn: Thầy Nguyễn Đức Tiến</p>
       </footer>
     </div>
   );

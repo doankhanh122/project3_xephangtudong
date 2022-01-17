@@ -14,24 +14,28 @@ const CustomerQueues: React.FC<{
       {queuehascustomers.map((row) => {
         return (
           <div key={row.queue_QueueID} className="alert alert-success">
+            <strong>{" Số thứ tự của bạn: "}</strong>
+            <span className="badge bg-success">
+              <h1>{row.Order}</h1>
+            </span>{" "}
+            <span
+              className={`badge ${
+                row.enrollstatus_EnrollStatusID == 0 ? "bg-warning" : "bg-dark"
+              }`}
+            >
+              <h5>
+                {row.enrollstatus_EnrollStatusID == 0
+                  ? "Đang chờ"
+                  : "Bạn đã phục vụ"}
+              </h5>
+            </span>
+            <hr />
             <strong>{"ID: "} </strong>
             {row.queue_QueueID}
             <strong>{" - Địa điểm: "}</strong>
             {queues.map((queue) => {
               return `${queue.QueueID == row.queue_QueueID ? queue.Place : ""}`;
             })}
-            <hr />
-            <strong>{" Số thứ tự của bạn: "}</strong>
-            <span className="badge bg-success">{row.Order}</span> {}
-            <span
-              className={`badge ${
-                row.enrollstatus_EnrollStatusID == 0 ? "bg-warning" : "bg-dark"
-              }`}
-            >
-              {row.enrollstatus_EnrollStatusID == 0
-                ? "Đang chờ"
-                : "Bạn đã phục vụ"}
-            </span>
             {row.enrollstatus_EnrollStatusID == 0 && (
               <div>
                 {/* <br /> */}
