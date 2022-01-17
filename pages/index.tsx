@@ -83,7 +83,11 @@ const Home: NextPage<{
       setIsRequesting(false);
 
       if (registerCustomerRes) {
-        await setCookie("customerId", customerId);
+        // Set cookies ton tai trong 1 ngay
+        await setCookie("customerId", customerId, {
+          path: "/",
+          expires: new Date(Date.now() + 86400 * 1000),
+        });
         // Add to Queue
 
         if (customerQueue == undefined) {
@@ -191,7 +195,12 @@ const Home: NextPage<{
     return result;
   };
 
-  useEffect(() => {}, []);
+  useEffect(() => {
+    // setCookie("customerId", "khanh", {
+    //   path: "/",
+    //   expires: new Date(Date.now() + 10 * 1000),
+    // });
+  }, []);
 
   return (
     <div className={styles.container}>
