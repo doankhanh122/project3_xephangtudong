@@ -4,9 +4,6 @@ import React, { useEffect, useState } from "react";
 import styles from "../styles/Home.module.css";
 import { useCookies } from "react-cookie";
 
-// import QrReader from 'react-qr-reader'
-import dynamic from "next/dynamic";
-import { AnyCnameRecord } from "dns";
 import GetNumberDialog from "../components/getNumberDialog";
 import CustomerQueues from "../components/customerQueues";
 import { useQueueHasCustomers } from "../lib/swr-hooks";
@@ -18,8 +15,15 @@ import WarningDialog from "../components/warningDialog";
 import Spinner from "../components/spinner";
 import { useRouter } from "next/router";
 import Link from "next/link";
+import {
+  addCustomerToQueue,
+  checkIsDuplicateQueue,
+  getQueueWithCode,
+  makeid,
+  registerCustomer,
+  updateCustomerToQueue,
+} from ".";
 
-const QrReader: any = dynamic(() => import("react-qr-reader"), { ssr: false });
 const md5 = require("md5");
 
 export type RequestResponse = {
@@ -36,45 +40,14 @@ const Home: NextPage<{
   const [customerQueue, setCustomerQueue] = useState<queue>();
   const [cookie, setCookie, removeCookie] = useCookies(["customerId"]);
 
-  const [isCameraTurnedOn, setIsCameraTurnedOn] = useState(false);
-  const [dataQr, setDataQr] = useState(null);
   const [isSuccess, setIsSuccess] = useState<boolean | null>(null);
   // const [hasCookie, setHasCookie] = useState(false);
 
   const [isDuplicate, setIsDuplicate] = useState({
     isDouble: false,
-    status: 0,
+    status: 1,
   });
-
-  const [isClickResetCookie, setIsClickResetCookie] = useState(false);
-
   const [isRequesting, setIsRequesting] = useState(false);
-
-  // const [customerResult, setCustomerResult] = useState<queue_has_customer[]>();
-
-  const handleScan = async (data: any) => {
-    setDataQr(null);
-
-    if (data != null && isCameraTurnedOn) {
-      const raw_array = data.split("/");
-      const code_string = raw_array[raw_array.lenght - 1];
-      setDataQr(code_string);
-      setIsCameraTurnedOn(false);
-
-      // console.log("Customer ID cookie: " + cookie.customerid);
-      const queue = getQueueWithCode(code_string, queues);
-      // console.log(queue);
-      if (queue !== undefined) {
-        setCustomerQueue(queue);
-      } else {
-        setCustomerQueue(undefined);
-      }
-    }
-  };
-
-  const handleError = (err: AnyCnameRecord) => {
-    console.error(err);
-  };
 
   const insertCustomerToQueueHandler = async () => {
     const customerid_cookie = await cookie.customerId;
@@ -160,10 +133,6 @@ const Home: NextPage<{
     }
   };
 
-  const resetCookie = async () => {
-    await removeCookie("customerId");
-  };
-
   const updateCustomerToQueueHandler = async () => {
     setIsDuplicate((state) => {
       return { isDouble: false, status: state.status };
@@ -190,21 +159,6 @@ const Home: NextPage<{
     cookie.customerId
   );
 
-  const checkIsDuplicateQueue = (
-    queueId: string,
-    queue_has_customers: queue_has_customer[]
-  ): { isDouble: boolean; status: number } => {
-    let isDouble: boolean = false,
-      status: number = 0;
-    queue_has_customers.forEach((row) => {
-      if (row.queue_QueueID == queueId) {
-        isDouble = true;
-        status = row.enrollstatus_EnrollStatusID;
-      }
-    });
-
-    return { isDouble, status };
-  };
   const { asPath, route, query } = useRouter();
   console.log(query.slug);
   useEffect(() => {
@@ -213,11 +167,22 @@ const Home: NextPage<{
       console.log(queue);
       if (queue !== undefined) {
         setCustomerQueue(queue);
+
+        if (queueHasCustomers != undefined) {
+          const { isDouble, status } = checkIsDuplicateQueue(
+            queue.QueueID.toString(),
+            queueHasCustomers
+          );
+
+          setIsDuplicate((state) => {
+            return { isDouble: isDouble, status: status };
+          });
+        }
       } else {
         setCustomerQueue(undefined);
       }
     }
-  }, []);
+  }, [queueHasCustomers]);
 
   return (
     <div className={styles.container}>
@@ -230,20 +195,20 @@ const Home: NextPage<{
       <main className={styles.main}>
         <section className="text-center">
           <div className={styles.description}>
-            {/* <button
-              className="btn btn-success"
-              onClick={() => {
-                setIsSuccess(null);
-                setIsCameraTurnedOn((isCameraTurnedOn) => !isCameraTurnedOn);
-              }}
-            >
-              <h4>{isCameraTurnedOn ? "Dừng quét" : "Quét ngay"}</h4>
-            </button> */}
-
             <GetNumberDialog
               queue={customerQueue}
-              insertCustomerToQueue={insertCustomerToQueueHandler}
-              open={customerQueue != undefined}
+              insertCustomerToQueue={() => {
+                insertCustomerToQueueHandler();
+                // setIsDuplicate((state) => {
+                //   return { isDouble: true, status: 1 };
+                // });
+                // setCustomerQueue(undefined);
+              }}
+              open={
+                customerQueue != undefined &&
+                !isDuplicate.isDouble &&
+                isDuplicate.status === 0
+              }
               onClose={() => {
                 setCustomerQueue(undefined);
               }}
@@ -251,7 +216,7 @@ const Home: NextPage<{
 
             {/* <DuplicateWarning confirm={updateCustomerToQueueHandler} /> */}
             {/* Hiện cảnh báo khách hàng đã lấy STT rồi và đã được phục vụ rồi*/}
-            <WarningDialog
+            {/* <WarningDialog
               title="Cảnh báo"
               desc={`Bạn đã lấy số STT cho địa điểm: ${customerQueue?.Place}, bạn có chắc chắn muốn lấy lại STT
                 mới?`}
@@ -262,7 +227,7 @@ const Home: NextPage<{
                 });
               }}
               open={isDuplicate.isDouble && isDuplicate.status == 1}
-            />
+            /> */}
 
             {/* Hiện cảnh báo nếu người dùng đã lấy STT và đang chờ đến lượt */}
 
@@ -275,43 +240,21 @@ const Home: NextPage<{
                   return { isDouble: false, status: 0 };
                 });
               }}
-              open={isDuplicate.isDouble && isDuplicate.status == 0}
+              open={
+                isDuplicate.isDouble &&
+                isDuplicate.status == 0 &&
+                !customerQueue
+              }
               withButton={false}
             ></WarningDialog>
-            {/* <Dialog
-              open={isDuplicate.isDouble && isDuplicate.status == 0}
-              onClose={() => {
-                setIsDuplicate(() => {
-                  return { isDouble: false, status: 0 };
-                });
-              }}
-            >
-              <DialogTitle>
-                <strong>Thông báo</strong>
-              </DialogTitle>
-              <DialogContent>
-                <p>
-                  <strong>
-                    Bạn đã lấy số thứ tự, vui lòng chờ đến lượt bạn nhé
-                  </strong>
-                </p>
-              </DialogContent>
-            </Dialog> */}
 
-            {customerQueue == undefined && dataQr !== null && (
-              <div className="alert alert-danger mt-3">Mã QR không đúng</div>
+            {!isSuccess && isSuccess != null && !isRequesting && (
+              <div className="alert alert-danger mt-3">
+                Lấy STT không thành công
+              </div>
             )}
 
-            {!isSuccess &&
-              isSuccess != null &&
-              !isRequesting &&
-              dataQr !== null && (
-                <div className="alert alert-danger mt-3">
-                  Lấy STT không thành công
-                </div>
-              )}
-
-            {isSuccess && isSuccess != null && !isCameraTurnedOn && (
+            {isSuccess && isSuccess != null && (
               <div className="alert alert-success mt-3">
                 Đã thấy STT thành công
               </div>
@@ -325,16 +268,6 @@ const Home: NextPage<{
                 <Link href={"/"}>Trở về trang chủ</Link>
               </a>
             </div>
-
-            <WarningDialog
-              title="Bạn có chắc chắn muốn xóa Cookie"
-              desc="Xóa cookie sẽ xóa toàn bộ dữ liệu hàng đợi của bạn"
-              action={resetCookie}
-              onClose={() => {
-                setIsClickResetCookie(false);
-              }}
-              open={isClickResetCookie}
-            />
           </div>
         </section>
         {/* <br /> */}
@@ -353,15 +286,6 @@ const Home: NextPage<{
             />
           )}
         </section>
-
-        {/* <section>
-          <h3 className={styles.title}>Danh sách Địa điểm</h3>
-          <ul>
-            {queues.map((queue) => {
-              return <li key={queue.QueueID}>{queue.Place}</li>;
-            })}
-          </ul>
-        </section> */}
       </main>
 
       <footer className={styles.footer}>
@@ -380,86 +304,3 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 };
 
 export default Home;
-
-const registerCustomer = async (
-  customerid: string,
-  deviceinfo: string
-): Promise<boolean> => {
-  // const url = `${app_url}/api/insertcustomer`;
-  const url = `/api/insertcustomer`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      customerid,
-      deviceinfo,
-    }),
-  });
-
-  return res.ok;
-};
-
-const addCustomerToQueue = async (
-  queueid: string,
-  customerid: string,
-  order: number,
-  status: number
-): Promise<boolean> => {
-  // const url = app_url + "/api/inserttoqueue";
-  const url = "/api/inserttoqueue";
-
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      queueid,
-      customerid,
-      order,
-      status,
-    }),
-  });
-
-  return res.ok;
-};
-
-const updateCustomerToQueue = async (
-  queueid: string,
-  customerid: string
-): Promise<boolean> => {
-  const url = "/api/updatetoqueue";
-
-  const res = await fetch(url, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      queueid,
-      customerid,
-    }),
-  });
-
-  return res.ok;
-};
-
-const getQueueWithCode = (queueCode: string, queues: queue[]) => {
-  let result: queue | undefined;
-  queues.forEach((queue: queue) => {
-    if (queue.Code == queueCode) {
-      result = queue;
-    }
-  });
-
-  return result;
-};
-
-const makeid = (length: number) => {
-  var result = "";
-  var characters =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  var charactersLength = characters.length;
-  for (var i = 0; i < length; i++) {
-    result += characters.charAt(Math.floor(Math.random() * charactersLength));
-  }
-  return result;
-};

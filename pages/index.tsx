@@ -207,22 +207,6 @@ const Home: NextPage<{
     cookie.customerId
   );
 
-  const checkIsDuplicateQueue = (
-    queueId: string,
-    queue_has_customers: queue_has_customer[]
-  ): { isDouble: boolean; status: number } => {
-    let isDouble: boolean = false,
-      status: number = 0;
-    queue_has_customers.forEach((row) => {
-      if (row.queue_QueueID == queueId) {
-        isDouble = true;
-        status = row.enrollstatus_EnrollStatusID;
-      }
-    });
-
-    return { isDouble, status };
-  };
-
   useEffect(() => {
     // setCookie("customerId", "khanh", {
     //   path: "/",
@@ -414,7 +398,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
 export default Home;
 
-const registerCustomer = async (
+export const registerCustomer = async (
   customerid: string,
   deviceinfo: string
 ): Promise<boolean> => {
@@ -434,7 +418,7 @@ const registerCustomer = async (
   return res.ok;
 };
 
-const addCustomerToQueue = async (
+export const addCustomerToQueue = async (
   queueid: string,
   customerid: string,
   order: number,
@@ -457,7 +441,7 @@ const addCustomerToQueue = async (
   return res.ok;
 };
 
-const updateCustomerToQueue = async (
+export const updateCustomerToQueue = async (
   queueid: string,
   customerid: string
 ): Promise<boolean> => {
@@ -475,7 +459,7 @@ const updateCustomerToQueue = async (
   return res.ok;
 };
 
-const getQueueWithCode = (queueCode: string, queues: queue[]) => {
+export const getQueueWithCode = (queueCode: string, queues: queue[]) => {
   let result: queue | undefined;
   queues.forEach((queue: queue) => {
     if (queue.Code == queueCode) {
@@ -486,7 +470,23 @@ const getQueueWithCode = (queueCode: string, queues: queue[]) => {
   return result;
 };
 
-const makeid = (length: number) => {
+export const checkIsDuplicateQueue = (
+  queueId: string,
+  queue_has_customers: queue_has_customer[]
+): { isDouble: boolean; status: number } => {
+  let isDouble: boolean = false,
+    status: number = 0;
+  queue_has_customers.forEach((row) => {
+    if (row.queue_QueueID == queueId) {
+      isDouble = true;
+      status = row.enrollstatus_EnrollStatusID;
+    }
+  });
+
+  return { isDouble, status };
+};
+
+export const makeid = (length: number) => {
   var result = "";
   var characters =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
