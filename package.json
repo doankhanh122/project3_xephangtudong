@@ -33,7 +33,6 @@
     "@types/react-qr-reader": "^2.1.4",
     "eslint": "7",
     "eslint-config-next": "12.0.4",
-    "prisma": "^3.8.0",
     "react-qr-scanner": "^1.0.0-alpha.7",
     "typescript": "4.5.2"
   }

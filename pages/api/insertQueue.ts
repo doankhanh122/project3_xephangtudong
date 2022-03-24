@@ -8,9 +8,15 @@ export default async function handler(
   // const effectFrom = new Date(Date.now());
   // const effectTo = new Date(Date.now() + 600000);
 
-  const queueData = JSON.parse(req.body);
+  // const queueData = JSON.parse(req.body);
+  const queueData = req.body;
+  // console.log(queueData);
 
-  const insertqueue = await db.queue.create({ data: queueData });
+  const insertqueue = await db.queue.create({
+    data: queueData,
+  });
+
+  db.$disconnect();
   res.json(insertqueue);
 
   // "INSERT INTO queues (queueid, effectfrom, effectto, author, place, edition, code) values (?,?,?,?,?,?,?)",

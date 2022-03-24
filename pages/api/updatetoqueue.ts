@@ -20,5 +20,7 @@ export default async function handler(
       EnrollTime: enrolltime,
     },
   });
+
+  db.$disconnect();
   res.json(inserttoqueue);
 }

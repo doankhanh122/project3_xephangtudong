@@ -1,8 +1,5 @@
-import { PrismaClient } from "@prisma/client";
 import { NextApiRequest, NextApiResponse } from "next";
 import db from "../../lib/dbconnection";
-
-const prisma = new PrismaClient();
 
 export default async function handler(
   req: NextApiRequest,
@@ -11,7 +8,13 @@ export default async function handler(
   const enrolltime = new Date(Date.now());
   const body = req.body;
 
-  const inserttoqueue = await prisma.queue_has_customer.create({
+  // const inserttoqueue = await db.queue_has_customer.create({
+  //   data: body,
+  // });
+
+  console.log(body);
+
+  const inserttoqueue = await db.queue_has_customer.create({
     data: {
       queue_QueueID: body.queueid,
       customer_CustomerID: body.customerid,
@@ -20,6 +23,6 @@ export default async function handler(
       enrollstatus_EnrollStatusID: body.status,
     },
   });
-
+  db.$disconnect();
   res.json(inserttoqueue);
 }
