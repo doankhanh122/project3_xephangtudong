@@ -23,6 +23,8 @@ export default async function handler(
       enrollstatus_EnrollStatusID: body.status,
     },
   });
-  db.$disconnect();
+
   res.json(inserttoqueue);
+
+  db.$disconnect();
 }

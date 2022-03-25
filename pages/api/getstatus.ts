@@ -8,4 +8,6 @@ export default async function handler(
   const enrollstatus = await db.enrollstatus.findMany();
 
   res.json(enrollstatus);
+
+  db.$disconnect;
 }

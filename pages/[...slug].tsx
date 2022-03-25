@@ -13,7 +13,7 @@ import db from "../lib/dbconnection";
 import { mutate } from "swr";
 import WarningDialog from "../components/warningDialog";
 import Spinner from "../components/spinner";
-import { useRouter } from "next/router";
+import Router, { useRouter } from "next/router";
 import Link from "next/link";
 import {
   addCustomerToQueue,
@@ -42,6 +42,10 @@ const Home: NextPage<{
 
   const [isSuccess, setIsSuccess] = useState<boolean | null>(null);
   // const [hasCookie, setHasCookie] = useState(false);
+
+  if (isSuccess && isSuccess != null) {
+    Router.push({ pathname: "/", query: { isSuccessful: true } });
+  }
 
   const [isDuplicate, setIsDuplicate] = useState({
     isDouble: false,
@@ -160,7 +164,7 @@ const Home: NextPage<{
   );
 
   const { asPath, route, query } = useRouter();
-  console.log(query.slug);
+  console.log(query.slug); // Hien queue id
   useEffect(() => {
     if (query.slug && query.slug?.length > 0) {
       const queue = getQueueWithCode(query.slug[0], queues);
@@ -182,7 +186,7 @@ const Home: NextPage<{
         setCustomerQueue(undefined);
       }
     }
-  }, [queueHasCustomers]);
+  }, [queueHasCustomers, query, queues]);
 
   return (
     <div className={styles.container}>
@@ -206,11 +210,12 @@ const Home: NextPage<{
               }}
               open={
                 customerQueue != undefined &&
+                !isRequesting &&
                 !isDuplicate.isDouble &&
                 isDuplicate.status === 0
               }
               onClose={() => {
-                setCustomerQueue(undefined);
+                // setCustomerQueue(undefined);
               }}
             />
 

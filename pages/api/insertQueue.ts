@@ -16,8 +16,9 @@ export default async function handler(
     data: queueData,
   });
 
-  db.$disconnect();
   res.json(insertqueue);
+
+  db.$disconnect();
 
   // "INSERT INTO queues (queueid, effectfrom, effectto, author, place, edition, code) values (?,?,?,?,?,?,?)",
   //     [

@@ -15,4 +15,5 @@ export default async function handler(
   });
 
   res.json(insertcustomer);
+  db.$disconnect;
 }

@@ -28,7 +28,8 @@ export type RequestResponse = {
 const Home: NextPage<{
   device_info: string;
   queues_stringify: string;
-}> = ({ device_info, queues_stringify }) => {
+  isSuccessfulFromSlug: boolean;
+}> = ({ device_info, queues_stringify, isSuccessfulFromSlug }) => {
   // console.log("Customer Queue \n" + customerQueues[0].customers_CustomerID);
   const queues: queue[] = JSON.parse(queues_stringify);
   const [customerQueue, setCustomerQueue] = useState<queue>();
@@ -179,6 +180,8 @@ const Home: NextPage<{
 
   const resetCookie = async () => {
     await removeCookie("customerId");
+    setIsClickResetCookie(false);
+    setIsSuccess(false);
   };
 
   const updateCustomerToQueueHandler = async () => {
@@ -207,6 +210,9 @@ const Home: NextPage<{
     cookie.customerId
   );
 
+  if (isSuccessfulFromSlug && isSuccess == null) {
+    setIsSuccess(true);
+  }
   useEffect(() => {
     // setCookie("customerId", "khanh", {
     //   path: "/",
@@ -244,7 +250,7 @@ const Home: NextPage<{
             <button
               className="btn btn-success"
               onClick={() => {
-                setIsSuccess(null);
+                setIsSuccess(false);
                 setIsCameraTurnedOn((isCameraTurnedOn) => !isCameraTurnedOn);
               }}
             >
@@ -322,11 +328,24 @@ const Home: NextPage<{
                 </div>
               )}
 
+            {/* {(isSuccessfulFromSlug ||
+              (isSuccess && isSuccess != null && !isCameraTurnedOn)) && (
+              <div className="alert alert-success mt-3">
+                Đã thấy STT thành công
+              </div>
+            )} */}
+
             {isSuccess && isSuccess != null && !isCameraTurnedOn && (
               <div className="alert alert-success mt-3">
                 Đã thấy STT thành công
               </div>
             )}
+
+            {/* {isSuccessfulFromSlug && (
+              <div className="alert alert-success mt-3">
+                Đã thấy STT thành công
+              </div>
+            )} */}
 
             {isRequesting && <Spinner />}
 
@@ -392,8 +411,20 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   const device_info = context.req.headers["user-agent"] || navigator.userAgent;
   const queues = await db.queue.findMany();
   const queues_stringify = JSON.stringify(queues);
+  const previousRoute = context.req.headers.referer;
 
-  return { props: { device_info, queues_stringify } };
+  const isSuccessfulFromSlug =
+    context.query.isSuccessful != undefined &&
+    previousRoute != undefined &&
+    previousRoute.indexOf("?", 0) == -1
+      ? context.query.isSuccessful
+      : false;
+  // const isSuccessfulFromSlug = context.query.isSuccessful;
+
+  console.log(context.req.headers.referer);
+  previousRoute && console.log(previousRoute.indexOf("x", 0));
+
+  return { props: { device_info, queues_stringify, isSuccessfulFromSlug } };
 };
 
 export default Home;

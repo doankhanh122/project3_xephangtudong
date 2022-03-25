@@ -21,6 +21,6 @@ export default async function handler(
     },
   });
 
-  db.$disconnect();
   res.json(inserttoqueue);
+  db.$disconnect();
 }

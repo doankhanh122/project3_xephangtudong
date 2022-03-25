@@ -13,8 +13,8 @@ const GetNumberDialog: React.FC<{
   };
 
   const getNumberHandler = () => {
-    insertCustomerToQueue();
     onClose();
+    insertCustomerToQueue();
   };
 
   return (

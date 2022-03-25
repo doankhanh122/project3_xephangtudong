@@ -23,4 +23,5 @@ export default async function getQueueHasCustomers(
   });
 
   res.json(queue_has_customer);
+  db.$disconnect;
 }

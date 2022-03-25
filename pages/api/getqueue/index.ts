@@ -8,4 +8,5 @@ export default async function handler(
   console.log(req.query.queuecode);
   const queues = await db.queue.findMany();
   res.json(queues);
+  db.$disconnect;
 }
