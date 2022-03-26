@@ -47,11 +47,13 @@ const Home: NextPage<{
     Router.push({ pathname: "/", query: { isSuccessful: true } });
   }
 
-  const [isDuplicate, setIsDuplicate] = useState({
-    isDouble: false,
-    status: 1,
-  });
+  const [isDuplicate, setIsDuplicate] = useState<{
+    isDouble: boolean;
+    status: number;
+  }>();
+
   const [isRequesting, setIsRequesting] = useState(false);
+  const [isDialogOpened, setIsDialogOpened] = useState(false);
 
   const insertCustomerToQueueHandler = async () => {
     const customerid_cookie = await cookie.customerId;
@@ -111,7 +113,14 @@ const Home: NextPage<{
         );
 
         if (isDouble) {
-          setIsDuplicate({ isDouble: isDouble, status: status });
+          if (status == 1) {
+            updateCustomerToQueueHandler(
+              customerQueue.QueueID.toString(),
+              customerid_cookie
+            );
+          } else {
+            setIsDuplicate({ isDouble: isDouble, status: status });
+          }
         } else {
           setIsRequesting(true);
 
@@ -137,17 +146,17 @@ const Home: NextPage<{
     }
   };
 
-  const updateCustomerToQueueHandler = async () => {
-    setIsDuplicate((state) => {
-      return { isDouble: false, status: state.status };
-    });
+  const updateCustomerToQueueHandler = async (
+    queueId: string,
+    customerId: string
+  ) => {
+    // setIsDuplicate((state) => {
+    //   return { isDouble: false, status: state.status };
+    // });
     if (customerQueue !== undefined && !isLoading && !isError) {
       setIsRequesting(true);
 
-      const res = await updateCustomerToQueue(
-        customerQueue.QueueID.toString(),
-        cookie.customerId
-      );
+      const res = await updateCustomerToQueue(queueId, customerId);
 
       setIsRequesting(false);
 
@@ -162,8 +171,11 @@ const Home: NextPage<{
   const { queueHasCustomers, isLoading, isError } = useQueueHasCustomers(
     cookie.customerId
   );
+  console.log("queueHasCustomers: ");
+  console.log(queueHasCustomers);
 
   const { asPath, route, query } = useRouter();
+  console.log("Hien queue id: ");
   console.log(query.slug); // Hien queue id
   useEffect(() => {
     if (query.slug && query.slug?.length > 0) {
@@ -178,6 +190,9 @@ const Home: NextPage<{
             queueHasCustomers
           );
 
+          console.log("IsDuplicate: " + isDouble);
+          console.log("Status: " + status);
+
           setIsDuplicate((state) => {
             return { isDouble: isDouble, status: status };
           });
@@ -186,7 +201,7 @@ const Home: NextPage<{
         setCustomerQueue(undefined);
       }
     }
-  }, [queueHasCustomers, query, queues]);
+  }, [queueHasCustomers]); //queueHasCustomers, query, queues
 
   return (
     <div className={styles.container}>
@@ -211,10 +226,16 @@ const Home: NextPage<{
               open={
                 customerQueue != undefined &&
                 !isRequesting &&
-                !isDuplicate.isDouble &&
-                isDuplicate.status === 0
+                isDuplicate != undefined &&
+                (!isDuplicate.isDouble ||
+                  (isDuplicate.isDouble && isDuplicate.status == 1)) &&
+                // isDuplicate.status === 0 &&
+                isSuccess == undefined &&
+                !isDialogOpened
               }
               onClose={() => {
+                // console.log("Dong cua so lay stt");
+                setIsDialogOpened(true);
                 // setCustomerQueue(undefined);
               }}
             />
@@ -241,14 +262,19 @@ const Home: NextPage<{
               desc="Bạn đã lấy số thứ tự trước đó rồi! Vui lòng chờ đến lượt bạn nhé"
               action={() => {}}
               onClose={() => {
-                setIsDuplicate(() => {
-                  return { isDouble: false, status: 0 };
-                });
+                // setIsDuplicate(() => {
+                //   return { ...isDuplicate, status: 1 };
+                // });
+                setIsDialogOpened(true);
+                Router.push("/");
               }}
               open={
+                isDuplicate != undefined &&
                 isDuplicate.isDouble &&
                 isDuplicate.status == 0 &&
-                !customerQueue
+                !isSuccess &&
+                !isDialogOpened
+                // !customerQueue
               }
               withButton={false}
             ></WarningDialog>
@@ -269,9 +295,10 @@ const Home: NextPage<{
 
             <div className="text-decoration-none mt-3">
               {" "}
-              <a className="text-decoration-none">
+              {/* <a className="text-decoration-none">
                 <Link href={"/"}>Trở về trang chủ</Link>
-              </a>
+              </a> */}
+              <Link href={"/"}>Trở về trang chủ</Link>
             </div>
           </div>
         </section>

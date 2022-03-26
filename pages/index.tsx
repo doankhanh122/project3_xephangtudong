@@ -270,7 +270,7 @@ const Home: NextPage<{
             {/* Hiện cảnh báo khách hàng đã lấy STT rồi và đã được phục vụ rồi*/}
             <WarningDialog
               title="Cảnh báo"
-              desc={`Bạn đã lấy số STT cho địa điểm: ${customerQueue?.Place}, bạn có chắc chắn muốn lấy lại STT
+              desc={`Bạn đã từng được phục vụ tại: ${customerQueue?.Place}, bạn có chắc chắn muốn lấy lại STT
                 mới?`}
               action={updateCustomerToQueueHandler}
               onClose={() => {
@@ -410,6 +410,7 @@ const Home: NextPage<{
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const device_info = context.req.headers["user-agent"] || navigator.userAgent;
   const queues = await db.queue.findMany();
+  db.$disconnect;
   const queues_stringify = JSON.stringify(queues);
   const previousRoute = context.req.headers.referer;
 

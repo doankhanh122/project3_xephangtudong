@@ -26,8 +26,14 @@ const GetNumberDialog: React.FC<{
         </p>
 
         <p>
-          Thời gian: từ {queue && queue.EffectFrom?.toLocaleString("vi-VN")} đến{" "}
-          {queue && queue.EffectTo?.toLocaleString("vi-VN")}
+          Thời gian: từ{" "}
+          {queue &&
+            queue.EffectFrom &&
+            new Date(queue.EffectFrom).toLocaleString("vi-VN")}{" "}
+          đến{" "}
+          {queue &&
+            queue.EffectTo &&
+            new Date(queue.EffectTo).toLocaleString("vi-VN")}
         </p>
 
         <div className="text-center">
