@@ -25,7 +25,7 @@ const QrCodesPage: NextPage<{ app_url: string }> = ({ app_url }) => {
     // io.on("connection", (socket) => {
     //   console.log(socket.id);
     // });
-    const socket = io({ path: "/api/socketio" });
+    const socket = io({ path: "/api/socketio", secure: true });
     // const socket = io({ path: "/qrcode" });
     // socket.connect();
 
