@@ -23,6 +23,8 @@ import {
   registerCustomer,
   updateCustomerToQueue,
 } from ".";
+import { io } from "socket.io-client";
+import { Socket } from "socket.io";
 
 const md5 = require("md5");
 
@@ -30,6 +32,8 @@ export type RequestResponse = {
   code: string;
   message: string;
 };
+
+let socket: Socket;
 
 const Home: NextPage<{
   device_info: string;
@@ -94,6 +98,7 @@ const Home: NextPage<{
           if (addCustomerToQueueRes) {
             setIsSuccess(true);
             // Refetch lại hàng đợi khách đã đăng ký
+            // socket?.emit("qrcodeRefesh", "abcd");
             mutate(`/api/getqueuehascustomers/${customerId}`);
           } else {
             setIsSuccess(false);
@@ -135,6 +140,7 @@ const Home: NextPage<{
 
           if (addCustomerToQueueRes) {
             setIsSuccess(true);
+
             // Refetch lại hàng đợi khách đã đăng ký
             mutate(`/api/getqueuehascustomers/${cookie.customerId}`);
           } else {
@@ -175,9 +181,10 @@ const Home: NextPage<{
   console.log(queueHasCustomers);
 
   const { asPath, route, query } = useRouter();
-  console.log("Hien queue id: ");
-  console.log(query.slug); // Hien queue id
+  // console.log("Hien queue id: ");
+  // console.log(query.slug); // Hien queue id
   useEffect(() => {
+    // socket = io({ path: "/api/socketio" });
     if (query.slug && query.slug?.length > 0) {
       const queue = getQueueWithCode(query.slug[0], queues);
       console.log(queue);

@@ -1,9 +1,10 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import db from "../../lib/dbconnection";
+import { NextApiResponseServerIO } from "../../types/next";
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse
+  res: NextApiResponseServerIO
 ) {
   const enrolltime = new Date(Date.now());
   const body = req.body;
@@ -23,6 +24,8 @@ export default async function handler(
       enrollstatus_EnrollStatusID: body.status,
     },
   });
+
+  res?.socket?.server?.io?.emit("queueid", body.queueid);
 
   res.json(inserttoqueue);
 

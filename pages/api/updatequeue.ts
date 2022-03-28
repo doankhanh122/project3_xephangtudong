@@ -6,18 +6,14 @@ export default async function handler(
   res: NextApiResponse
 ) {
   const body = req.body;
-  const enrolltime = new Date(Date.now());
+  // const enrolltime = new Date(Date.now());
   // const queue_has_customer_data = JSON.parse(req.body);
-  const updateCustomerHasQueue = await db.queue_has_customer.update({
+  const updateCustomerHasQueue = await db.queue.update({
     where: {
-      queue_QueueID_customer_CustomerID: {
-        queue_QueueID: body.queueid,
-        customer_CustomerID: body.customerid,
-      },
+      QueueID: body.queueid,
     },
     data: {
-      enrollstatus_EnrollStatusID: 0,
-      EnrollTime: enrolltime,
+      Code: body.code,
     },
   });
 

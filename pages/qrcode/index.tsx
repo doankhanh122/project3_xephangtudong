@@ -3,9 +3,50 @@ import { useGetQueues } from "../../lib/swr-hooks";
 import QRCode from "react-qr-code";
 import Link from "next/link";
 import { queue } from "@prisma/client";
+import { useCallback, useEffect, useState } from "react";
+// import { Server } from "socket.io";
+import { io } from "socket.io-client";
+import { makeid, updateQueue } from "..";
+import { mutate } from "swr";
+import { Router } from "next/router";
 
 const QrCodesPage: NextPage<{ app_url: string }> = ({ app_url }) => {
   const { queues, isLoading, isError } = useGetQueues();
+  const [isNeedRefresh, setIsNeedRefresh] = useState(false);
+  const [queueID, setQueueID] = useState("");
+
+  const fetchQueue = useCallback(async (queueid, code) => {
+    await updateQueue(queueid, code);
+    mutate(`/api/getqueue`);
+  }, []);
+
+  useEffect(() => {
+    // const io = new Server(3000);
+    // io.on("connection", (socket) => {
+    //   console.log(socket.id);
+    // });
+    const socket = io({ path: "/api/socketio" });
+    // const socket = io({ path: "/qrcode" });
+    // socket.connect();
+
+    // console.log("Socket Client");
+    // console.log(socket);
+
+    // socket.on("connect", () => {
+    //   console.log("Qrcode Page Socket connected");
+    // });
+
+    // socket.emit("message", "Khanh");
+
+    socket.on("queueid", (queueid) => {
+      console.log("QueueID need refresh: " + queueid);
+      fetchQueue(queueid, makeid(3));
+    });
+  });
+
+  if (isNeedRefresh) {
+    // mutate(`/api/getqueue`);
+  }
 
   return (
     <div>

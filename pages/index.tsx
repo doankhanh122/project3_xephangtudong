@@ -17,6 +17,9 @@ import { mutate } from "swr";
 import WarningDialog from "../components/warningDialog";
 import Spinner from "../components/spinner";
 
+import { io } from "socket.io-client";
+// import { createServer } from "http2";
+// import { io } from "socket.io-client";
 const QrReader: any = dynamic(() => import("react-qr-reader"), { ssr: false });
 const md5 = require("md5");
 
@@ -24,6 +27,8 @@ export type RequestResponse = {
   code: string;
   message: string;
 };
+
+let socket;
 
 const Home: NextPage<{
   device_info: string;
@@ -213,10 +218,48 @@ const Home: NextPage<{
   if (isSuccessfulFromSlug && isSuccess == null) {
     setIsSuccess(true);
   }
+
+  const socketInitializer = async () => {
+    // await fetch("/api/socketio");
+    const socket = io({ path: "/api/socketio" });
+    // socket.connect();
+
+    // console.log("Socket Client");
+    // console.log(socket);
+
+    // socket.on("connect", () => {
+    //   console.log("Home page Socket connected");
+    // });
+
+    // socket.on("test", () => {
+    //   console.log("Test thanh cong emit");
+    // });
+  };
   useEffect(() => {
+    // const socket = io("/api/socketio");
+    // // const socket = SocketIOClient.connect(process.env.BASE_URL, {
+    // //   path: "/api/socketio",
+    // // });
+    // console.log("process.env.BASE_URL:");
+    // console.log(process.env.BASE_URL);
+    // // log socket connection
+    // socket.on("connect", () => {
+    //   console.log("SOCKET CONNECTED!", socket.id);
+    // setConnected(true);
+    // });
+    // socketInitializer();
     // setCookie("customerId", "khanh", {
     //   path: "/",
     //   expires: new Date(Date.now() + 10 * 1000),
+    // });
+    // const socket = SocketIOClient("/api/socketio");
+    // socket.on("connect", () => {
+    //   console.log("SOCKET CONNECTED!", socket.id);
+    // });
+    // const httpServer = createServer();
+    // const SocketServer = new Server() as any;
+    // SocketServer.on("connection", function () {
+    //   console.log("Connected Socket: " + SocketServer.id);
     // });
   }, []);
 
@@ -410,7 +453,7 @@ const Home: NextPage<{
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const device_info = context.req.headers["user-agent"] || navigator.userAgent;
   const queues = await db.queue.findMany();
-  db.$disconnect;
+  // db.$disconnect;
   const queues_stringify = JSON.stringify(queues);
   const previousRoute = context.req.headers.referer;
 
@@ -467,6 +510,24 @@ export const addCustomerToQueue = async (
       customerid,
       order,
       status,
+    }),
+  });
+
+  return res.ok;
+};
+
+export const updateQueue = async (
+  queueid: string,
+  code: string
+): Promise<boolean> => {
+  const url = "/api/updatequeue";
+
+  const res = await fetch(url, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      queueid,
+      code,
     }),
   });
 
